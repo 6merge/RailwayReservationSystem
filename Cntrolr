@@ -1,0 +1,17 @@
+using Microsoft.AspNetCore.Mvc;
+
+namespace UserService.Controllers;
+
+[ApiController]
+[Route("api/users")]
+public class UsersController : ControllerBase
+{
+    [HttpGet("test")]
+    public IActionResult Test()
+    {
+        return Ok(new
+        {
+            message = "User Service is working"
+        });
+    }
+}
