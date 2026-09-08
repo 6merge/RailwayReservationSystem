@@ -1,0 +1,21 @@
+using UserService.DTOs;
+
+namespace UserService.Services;
+
+public class UserService : IUserService
+{
+    public Task<UserResponse> RegisterAsync(RegisterRequest request)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<string> LoginAsync(LoginRequest request)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<UserResponse?> GetUserAsync(int id)
+    {
+        throw new NotImplementedException();
+    }
+}
