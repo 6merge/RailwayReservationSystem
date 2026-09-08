@@ -1,0 +1,23 @@
+using UserService.Entities;
+
+namespace UserService.Repositories;
+
+public interface IUserRepository
+{
+    Task<User?> GetByIdAsync(int id);
+    Task<User?> GetByEmailAsync(string email);
+    Task<User?> GetByPhoneNumberAsync(string phoneNumber);
+    Task<bool> EmailExistsAsync(string email);
+    Task<bool> PhoneNumberExistsAsync(string phoneNumber);
+    Task AddAsync(User user);
+    Task SaveChangesAsync();
+}
+
+using Microsoft.EntityFrameworkCore;
+using UserService.Data;
+using UserService.Entities;
+
+namespace UserService.Repositories;
+
+public class UserRepository : IUserRepository
+{
