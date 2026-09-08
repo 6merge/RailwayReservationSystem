@@ -1,0 +1,81 @@
+using TrainService.DTOs;
+using TrainService.Entities;
+using TrainService.Exceptions;
+using TrainService.Repositories;
+
+namespace TrainService.Services;
+
+public class TrainService : ITrainService
+{
+    private readonly ITrainRepository _trainRepository;
+
+    public TrainService(ITrainRepository trainRepository)
+    {
+        _trainRepository = trainRepository;
+    }
+
+    public async Task<List<TrainResponse>> GetAllTrainsAsync()
+    {
+        var trains = await _trainRepository.GetAllAsync();
+
+        return trains.Select(t => new TrainResponse
+        {
+            Id = t.Id,
+            TrainNumber = t.TrainNumber,
+            Name = t.Name
+        }).ToList();
+    }
+
+    public async Task<TrainResponse?> GetTrainByIdAsync(int id)
+    {
+        var train = await _trainRepository.GetByIdAsync(id);
+
+        if (train == null)
+            throw new NotFoundException("Train not found.");
+
+        return new TrainResponse
+        {
+            Id = train.Id,
+            TrainNumber = train.TrainNumber,
+            Name = train.Name
+        };
+    }
+
+    public async Task<TrainResponse> CreateTrainAsync(
+        CreateTrainRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.TrainNumber))
+            throw new ArgumentException("Train number is required.");
+
+        if (string.IsNullOrWhiteSpace(request.Name))
+            throw new ArgumentException("Train name is required.");
+
+        var train = new Train
+        {
+            TrainNumber = request.TrainNumber,
+            Name = request.Name
+        };
+
+        await _trainRepository.AddAsync(train);
+        await _trainRepository.SaveChangesAsync();
+
+        return new TrainResponse
+        {
+            Id = train.Id,
+            TrainNumber = train.TrainNumber,
+            Name = train.Name
+        };
+    }
+}
+
+
+
+namespace TrainService.Exceptions;
+
+public class NotFoundException : Exception
+{
+    public NotFoundException(string message)
+        : base(message)
+    {
+    }
+}
