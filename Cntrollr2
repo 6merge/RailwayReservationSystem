@@ -1,0 +1,33 @@
+using Microsoft.AspNetCore.Mvc;
+using TrainService.DTOs;
+using TrainService.Services;
+
+namespace TrainService.Controllers;
+
+[ApiController]
+[Route("api/trains")]
+public class TrainsController : ControllerBase
+{
+    private readonly ITrainService _trainService;
+
+    public TrainsController(ITrainService trainService)
+    {
+        _trainService = trainService;
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetAllTrains()
+    {
+        var trains = await _trainService.GetAllTrainsAsync();
+
+        return Ok(trains);
+    }
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetTrain(int id)
+    {
+        var train = await _trainService.GetTrainByIdAsync(id);
+
+        return Ok(train);
+    }
+}
