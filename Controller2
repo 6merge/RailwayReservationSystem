@@ -1,0 +1,47 @@
+using Microsoft.AspNetCore.Mvc;
+using UserService.DTOs;
+using UserService.Services;
+
+namespace UserService.Controllers;
+
+[ApiController]
+[Route("api/users")]
+public class UsersController : ControllerBase
+{
+    private readonly IUserService _userService;
+
+    public UsersController(IUserService userService)
+    {
+        _userService = userService;
+    }
+
+    [HttpPost("register")]
+    public async Task<IActionResult> Register(RegisterRequest request)
+    {
+        var user = await _userService.RegisterAsync(request);
+
+        return CreatedAtAction(
+            nameof(GetUser),
+            new { id = user.Id },
+            user);
+    }
+
+    [HttpPost("login")]
+    public async Task<IActionResult> Login(LoginRequest request)
+    {
+        var token = await _userService.LoginAsync(request);
+
+        return Ok(new
+        {
+            token
+        });
+    }
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetUser(int id)
+    {
+        var user = await _userService.GetUserAsync(id);
+
+        return Ok(user);
+    }
+}
