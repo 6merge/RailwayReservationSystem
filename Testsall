@@ -1,0 +1,302 @@
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration.Memory;
+using Moq;
+using NUnit.Framework;
+using UserService.DTOs;
+using UserService.Entities;
+using UserService.Exceptions;
+using UserService.Repositories;
+
+namespace UserService.Tests;
+
+[TestFixture]
+public class UserServiceTests
+{
+    private Mock<IUserRepository> _repositoryMock = null!;
+    private IConfiguration _configuration = null!;
+    private UserService.Services.UserService _userService = null!;
+
+    [SetUp]
+    public void Setup()
+    {
+        _repositoryMock = new Mock<IUserRepository>();
+
+        var configurationData = new Dictionary<string, string?>
+        {
+            ["Jwt:Key"] = "ThisIsAVeryStrongSecretKeyForTesting123456",
+            ["Jwt:Issuer"] = "RailwayReservationSystem",
+            ["Jwt:Audience"] = "RailwayReservationClients",
+            ["Jwt:ExpiryMinutes"] = "60"
+        };
+
+        _configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(configurationData)
+            .Build();
+
+        _userService = new UserService.Services.UserService(
+            _repositoryMock.Object,
+            _configuration);
+    }
+
+    [Test]
+    public async Task RegisterAsync_ShouldCreateUserSuccessfully()
+    {
+        // Arrange
+        var request = new RegisterRequest
+        {
+            Name = "Test User",
+            Email = "test@example.com",
+            PhoneNumber = "9876543210",
+            Password = "Password123"
+        };
+
+        _repositoryMock
+            .Setup(x => x.EmailExistsAsync(request.Email))
+            .ReturnsAsync(false);
+
+        _repositoryMock
+            .Setup(x => x.PhoneNumberExistsAsync(request.PhoneNumber))
+            .ReturnsAsync(false);
+
+        // Act
+        var result = await _userService.RegisterAsync(request);
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.Name, Is.EqualTo("Test User"));
+        Assert.That(result.Email, Is.EqualTo("test@example.com"));
+        Assert.That(result.PhoneNumber, Is.EqualTo("9876543210"));
+        Assert.That(result.Role, Is.EqualTo("Passenger"));
+
+        _repositoryMock.Verify(
+            x => x.AddAsync(It.IsAny<User>()),
+            Times.Once);
+
+        _repositoryMock.Verify(
+            x => x.SaveChangesAsync(),
+            Times.Once);
+    }
+
+    [Test]
+    public async Task RegisterAsync_ShouldThrowConflictException_WhenEmailAlreadyExists()
+    {
+        // Arrange
+        var request = new RegisterRequest
+        {
+            Name = "Another User",
+            Email = "existing@example.com",
+            PhoneNumber = "9876543211",
+            Password = "Password123"
+        };
+
+        _repositoryMock
+            .Setup(x => x.EmailExistsAsync(request.Email))
+            .ReturnsAsync(true);
+
+        // Act & Assert
+        var exception = Assert.ThrowsAsync<ConflictException>(
+            async () => await _userService.RegisterAsync(request));
+
+        Assert.That(
+            exception!.Message,
+            Is.EqualTo("Email is already registered."));
+
+        _repositoryMock.Verify(
+            x => x.AddAsync(It.IsAny<User>()),
+            Times.Never);
+
+        _repositoryMock.Verify(
+            x => x.SaveChangesAsync(),
+            Times.Never);
+    }
+
+    [Test]
+    public async Task RegisterAsync_ShouldThrowConflictException_WhenPhoneNumberAlreadyExists()
+    {
+        // Arrange
+        var request = new RegisterRequest
+        {
+            Name = "Another User",
+            Email = "another@example.com",
+            PhoneNumber = "9876543210",
+            Password = "Password123"
+        };
+
+        _repositoryMock
+            .Setup(x => x.EmailExistsAsync(request.Email))
+            .ReturnsAsync(false);
+
+        _repositoryMock
+            .Setup(x => x.PhoneNumberExistsAsync(request.PhoneNumber))
+            .ReturnsAsync(true);
+
+        // Act & Assert
+        var exception = Assert.ThrowsAsync<ConflictException>(
+            async () => await _userService.RegisterAsync(request));
+
+        Assert.That(
+            exception!.Message,
+            Is.EqualTo("Phone number is already registered."));
+
+        _repositoryMock.Verify(
+            x => x.AddAsync(It.IsAny<User>()),
+            Times.Never);
+
+        _repositoryMock.Verify(
+            x => x.SaveChangesAsync(),
+            Times.Never);
+    }
+
+    [Test]
+    public async Task LoginAsync_ShouldReturnJwtToken_WhenCredentialsAreValid()
+    {
+        // Arrange
+        var user = new User
+        {
+            Id = 1,
+            Name = "Test User",
+            Email = "test@example.com",
+            PhoneNumber = "9876543210",
+            Role = "Passenger",
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var passwordHasher =
+            new Microsoft.AspNetCore.Identity.PasswordHasher<User>();
+
+        user.PasswordHash = passwordHasher.HashPassword(
+            user,
+            "Password123");
+
+        _repositoryMock
+            .Setup(x => x.GetByEmailAsync("test@example.com"))
+            .ReturnsAsync(user);
+
+        var request = new LoginRequest
+        {
+            EmailOrPhone = "test@example.com",
+            Password = "Password123"
+        };
+
+        // Act
+        var token = await _userService.LoginAsync(request);
+
+        // Assert
+        Assert.That(token, Is.Not.Null);
+        Assert.That(token, Is.Not.Empty);
+    }
+
+    [Test]
+    public void LoginAsync_ShouldThrowUnauthorizedAccessException_WhenPasswordIsWrong()
+    {
+        // Arrange
+        var user = new User
+        {
+            Id = 1,
+            Name = "Test User",
+            Email = "test@example.com",
+            PhoneNumber = "9876543210",
+            Role = "Passenger",
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var passwordHasher =
+            new Microsoft.AspNetCore.Identity.PasswordHasher<User>();
+
+        user.PasswordHash = passwordHasher.HashPassword(
+            user,
+            "CorrectPassword");
+
+        _repositoryMock
+            .Setup(x => x.GetByEmailAsync("test@example.com"))
+            .ReturnsAsync(user);
+
+        var request = new LoginRequest
+        {
+            EmailOrPhone = "test@example.com",
+            Password = "WrongPassword"
+        };
+
+        // Act & Assert
+        var exception = Assert.ThrowsAsync<UnauthorizedAccessException>(
+            async () => await _userService.LoginAsync(request));
+
+        Assert.That(
+            exception!.Message,
+            Is.EqualTo("Invalid credentials."));
+    }
+
+    [Test]
+    public void LoginAsync_ShouldThrowUnauthorizedAccessException_WhenUserDoesNotExist()
+    {
+        // Arrange
+        _repositoryMock
+            .Setup(x => x.GetByEmailAsync("missing@example.com"))
+            .ReturnsAsync((User?)null);
+
+        _repositoryMock
+            .Setup(x => x.GetByPhoneNumberAsync("missing@example.com"))
+            .ReturnsAsync((User?)null);
+
+        var request = new LoginRequest
+        {
+            EmailOrPhone = "missing@example.com",
+            Password = "Password123"
+        };
+
+        // Act & Assert
+        var exception = Assert.ThrowsAsync<UnauthorizedAccessException>(
+            async () => await _userService.LoginAsync(request));
+
+        Assert.That(
+            exception!.Message,
+            Is.EqualTo("Invalid credentials."));
+    }
+
+    [Test]
+    public async Task GetUserAsync_ShouldReturnUser_WhenUserExists()
+    {
+        // Arrange
+        var user = new User
+        {
+            Id = 1,
+            Name = "Test User",
+            Email = "test@example.com",
+            PhoneNumber = "9876543210",
+            Role = "Passenger",
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _repositoryMock
+            .Setup(x => x.GetByIdAsync(1))
+            .ReturnsAsync(user);
+
+        // Act
+        var result = await _userService.GetUserAsync(1);
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.Id, Is.EqualTo(1));
+        Assert.That(result.Name, Is.EqualTo("Test User"));
+        Assert.That(result.Email, Is.EqualTo("test@example.com"));
+        Assert.That(result.PhoneNumber, Is.EqualTo("9876543210"));
+        Assert.That(result.Role, Is.EqualTo("Passenger"));
+    }
+
+    [Test]
+    public void GetUserAsync_ShouldThrowNotFoundException_WhenUserDoesNotExist()
+    {
+        // Arrange
+        _repositoryMock
+            .Setup(x => x.GetByIdAsync(999))
+            .ReturnsAsync((User?)null);
+
+        // Act & Assert
+        var exception = Assert.ThrowsAsync<NotFoundException>(
+            async () => await _userService.GetUserAsync(999));
+
+        Assert.That(
+            exception!.Message,
+            Is.EqualTo("User not found."));
+    }
+}
