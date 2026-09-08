@@ -1,0 +1,83 @@
+using Moq;
+using NUnit.Framework;
+using UserService.DTOs;
+using UserService.Entities;
+using UserService.Exceptions;
+using UserService.Repositories;
+using UserService.Services;
+
+namespace UserService.Tests;
+
+[TestFixture]
+public class UserServiceTests
+{
+    private Mock<IUserRepository> _repositoryMock = null!;
+    private Mock<IConfiguration> _configurationMock = null!;
+    private UserService.Services.UserService _userService = null!;
+
+    [SetUp]
+    public void Setup()
+    {
+        _repositoryMock = new Mock<IUserRepository>();
+        _configurationMock = new Mock<IConfiguration>();
+
+        _configurationMock
+            .Setup(x => x["Jwt:Key"])
+            .Returns("ThisIsAVeryStrongSecretKeyForTesting123456");
+
+        _configurationMock
+            .Setup(x => x["Jwt:Issuer"])
+            .Returns("RailwayReservationSystem");
+
+        _configurationMock
+            .Setup(x => x["Jwt:Audience"])
+            .Returns("RailwayReservationClients");
+
+        _configurationMock
+            .Setup(x => x.GetValue<int>("Jwt:ExpiryMinutes"))
+            .Returns(60);
+
+        _userService = new UserService.Services.UserService(
+            _repositoryMock.Object,
+            _configurationMock.Object);
+    }
+
+    [Test]
+    public async Task RegisterAsync_ShouldCreateUserSuccessfully()
+    {
+        // Arrange
+        var request = new RegisterRequest
+        {
+            Name = "Test User",
+            Email = "test@example.com",
+            PhoneNumber = "9876543210",
+            Password = "Password123"
+        };
+
+        _repositoryMock
+            .Setup(x => x.EmailExistsAsync(request.Email))
+            .ReturnsAsync(false);
+
+        _repositoryMock
+            .Setup(x => x.PhoneNumberExistsAsync(request.PhoneNumber))
+            .ReturnsAsync(false);
+
+        // Act
+        var result = await _userService.RegisterAsync(request);
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.Name, Is.EqualTo("Test User"));
+        Assert.That(result.Email, Is.EqualTo("test@example.com"));
+        Assert.That(result.PhoneNumber, Is.EqualTo("9876543210"));
+        Assert.That(result.Role, Is.EqualTo("Passenger"));
+
+        _repositoryMock.Verify(
+            x => x.AddAsync(It.IsAny<User>()),
+            Times.Once);
+
+        _repositoryMock.Verify(
+            x => x.SaveChangesAsync(),
+            Times.Once);
+    }
+}
