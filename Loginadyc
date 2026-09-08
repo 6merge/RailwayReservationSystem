@@ -1,0 +1,30 @@
+public async Task<string> LoginAsync(LoginRequest request)
+{
+    if (string.IsNullOrWhiteSpace(request.EmailOrPhone))
+        throw new ArgumentException("Email or phone number is required.");
+
+    if (string.IsNullOrWhiteSpace(request.Password))
+        throw new ArgumentException("Password is required.");
+
+    User? user = await _userRepository.GetByEmailAsync(
+        request.EmailOrPhone);
+
+    if (user == null)
+    {
+        user = await _userRepository.GetByPhoneNumberAsync(
+            request.EmailOrPhone);
+    }
+
+    if (user == null)
+        throw new UnauthorizedAccessException("Invalid credentials.");
+
+    var passwordResult = _passwordHasher.VerifyHashedPassword(
+        user,
+        user.PasswordHash,
+        request.Password);
+
+    if (passwordResult == PasswordVerificationResult.Failed)
+        throw new UnauthorizedAccessException("Invalid credentials.");
+
+    return GenerateJwtToken(user);
+}
