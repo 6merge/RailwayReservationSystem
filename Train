@@ -1,0 +1,299 @@
+namespace TrainService.Entities;
+
+public class Train
+{
+    public int Id { get; set; }
+
+    public string TrainNumber { get; set; } = string.Empty;
+
+    public string Name { get; set; } = string.Empty;
+
+    public ICollection<RouteStop> RouteStops { get; set; }
+        = new List<RouteStop>();
+
+    public ICollection<Coach> Coaches { get; set; }
+        = new List<Coach>();
+}
+
+
+
+namespace TrainService.Entities;
+
+public class Station
+{
+    public int Id { get; set; }
+
+    public string Code { get; set; } = string.Empty;
+
+    public string Name { get; set; } = string.Empty;
+
+    public ICollection<RouteStop> RouteStops { get; set; }
+        = new List<RouteStop>();
+}
+
+
+
+namespace TrainService.Entities;
+
+public class RouteStop
+{
+    public int Id { get; set; }
+
+    public int TrainId { get; set; }
+
+    public int StationId { get; set; }
+
+    public int StopOrder { get; set; }
+
+    public TimeSpan ArrivalTime { get; set; }
+
+    public TimeSpan DepartureTime { get; set; }
+
+    public Train Train { get; set; } = null!;
+
+    public Station Station { get; set; } = null!;
+}
+
+namespace TrainService.Entities;
+
+public class Coach
+{
+    public int Id { get; set; }
+
+    public int TrainId { get; set; }
+
+    public string CoachNumber { get; set; } = string.Empty;
+
+    public string CoachType { get; set; } = string.Empty;
+
+    public Train Train { get; set; } = null!;
+
+    public ICollection<Seat> Seats { get; set; }
+        = new List<Seat>();
+}
+
+
+namespace TrainService.Entities;
+
+public class Seat
+{
+    public int Id { get; set; }
+
+    public int CoachId { get; set; }
+
+    public string SeatNumber { get; set; } = string.Empty;
+
+    public Coach Coach { get; set; } = null!;
+}
+
+namespace TrainService.Entities;
+
+public class Fare
+{
+    public int Id { get; set; }
+
+    public int TrainId { get; set; }
+
+    public int FromStationId { get; set; }
+
+    public int ToStationId { get; set; }
+
+    public string CoachType { get; set; } = string.Empty;
+
+    public decimal Amount { get; set; }
+
+    public Train Train { get; set; } = null!;
+}
+
+
+
+using Microsoft.EntityFrameworkCore;
+using TrainService.Entities;
+
+namespace TrainService.Data;
+
+public class TrainDbContext : DbContext
+{
+    public TrainDbContext(DbContextOptions<TrainDbContext> options)
+        : base(options)
+    {
+    }
+
+    public DbSet<Train> Trains { get; set; }
+
+    public DbSet<Station> Stations { get; set; }
+
+    public DbSet<RouteStop> RouteStops { get; set; }
+
+    public DbSet<Coach> Coaches { get; set; }
+
+    public DbSet<Seat> Seats { get; set; }
+
+    public DbSet<Fare> Fares { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        // Train
+        modelBuilder.Entity<Train>()
+            .HasIndex(t => t.TrainNumber)
+            .IsUnique();
+
+        modelBuilder.Entity<Train>()
+            .Property(t => t.TrainNumber)
+            .HasMaxLength(20)
+            .IsRequired();
+
+        modelBuilder.Entity<Train>()
+            .Property(t => t.Name)
+            .HasMaxLength(100)
+            .IsRequired();
+
+        // Station
+        modelBuilder.Entity<Station>()
+            .HasIndex(s => s.Code)
+            .IsUnique();
+
+        modelBuilder.Entity<Station>()
+            .Property(s => s.Code)
+            .HasMaxLength(20)
+            .IsRequired();
+
+        modelBuilder.Entity<Station>()
+            .Property(s => s.Name)
+            .HasMaxLength(100)
+            .IsRequired();
+
+        // Train -> RouteStops
+        modelBuilder.Entity<RouteStop>()
+            .HasOne(r => r.Train)
+            .WithMany(t => t.RouteStops)
+            .HasForeignKey(r => r.TrainId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Station -> RouteStops
+        modelBuilder.Entity<RouteStop>()
+            .HasOne(r => r.Station)
+            .WithMany(s => s.RouteStops)
+            .HasForeignKey(r => r.StationId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<RouteStop>()
+            .HasIndex(r => new { r.TrainId, r.StopOrder })
+            .IsUnique();
+
+        modelBuilder.Entity<RouteStop>()
+            .HasIndex(r => new { r.TrainId, r.StationId })
+            .IsUnique();
+
+        // Train -> Coaches
+        modelBuilder.Entity<Coach>()
+            .HasOne(c => c.Train)
+            .WithMany(t => t.Coaches)
+            .HasForeignKey(c => c.TrainId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Coach>()
+            .HasIndex(c => new { c.TrainId, c.CoachNumber })
+            .IsUnique();
+
+        modelBuilder.Entity<Coach>()
+            .Property(c => c.CoachNumber)
+            .HasMaxLength(20)
+            .IsRequired();
+
+        modelBuilder.Entity<Coach>()
+            .Property(c => c.CoachType)
+            .HasMaxLength(30)
+            .IsRequired();
+
+        // Coach -> Seats
+        modelBuilder.Entity<Seat>()
+            .HasOne(s => s.Coach)
+            .WithMany(c => c.Seats)
+            .HasForeignKey(s => s.CoachId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Seat>()
+            .HasIndex(s => new { s.CoachId, s.SeatNumber })
+            .IsUnique();
+
+        modelBuilder.Entity<Seat>()
+            .Property(s => s.SeatNumber)
+            .HasMaxLength(20)
+            .IsRequired();
+
+        // Fare
+        modelBuilder.Entity<Fare>()
+            .HasOne(f => f.Train)
+            .WithMany()
+            .HasForeignKey(f => f.TrainId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Fare>()
+            .HasIndex(f => new
+            {
+                f.TrainId,
+                f.FromStationId,
+                f.ToStationId,
+                f.CoachType
+            })
+            .IsUnique();
+
+        modelBuilder.Entity<Fare>()
+            .Property(f => f.CoachType)
+            .HasMaxLength(30)
+            .IsRequired();
+
+        modelBuilder.Entity<Fare>()
+            .Property(f => f.Amount)
+            .HasPrecision(18, 2);
+    }
+}
+
+
+{
+  "ConnectionStrings": {
+    "TrainDatabase": "Server=LIN-FR9TRN3;Database=RailwayTrainDb;User Id=sa;Password=YOUR_EXISTING_SQL_PASSWORD;TrustServerCertificate=True;"
+  },
+
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+
+  "AllowedHosts": "*"
+}
+
+
+using Microsoft.EntityFrameworkCore;
+using TrainService.Data;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddControllers();
+
+builder.Services.AddEndpointsApiExplorer();
+
+builder.Services.AddSwaggerGen();
+
+builder.Services.AddDbContext<TrainDbContext>(options =>
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("TrainDatabase")));
+
+var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseAuthorization();
+
+app.MapControllers();
+
+app.Run();
