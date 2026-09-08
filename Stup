@@ -1,0 +1,32 @@
+[SetUp]
+public void Setup()
+{
+    _repositoryMock = new Mock<IUserRepository>();
+    _configurationMock = new Mock<IConfiguration>();
+
+    _configurationMock
+        .Setup(x => x["Jwt:Key"])
+        .Returns("ThisIsAVeryStrongSecretKeyForTesting123456");
+
+    _configurationMock
+        .Setup(x => x["Jwt:Issuer"])
+        .Returns("RailwayReservationSystem");
+
+    _configurationMock
+        .Setup(x => x["Jwt:Audience"])
+        .Returns("RailwayReservationClients");
+
+    var expirySection = new Mock<IConfigurationSection>();
+
+    expirySection
+        .SetupGet(x => x.Value)
+        .Returns("60");
+
+    _configurationMock
+        .Setup(x => x.GetSection("Jwt:ExpiryMinutes"))
+        .Returns(expirySection.Object);
+
+    _userService = new UserService.Services.UserService(
+        _repositoryMock.Object,
+        _configurationMock.Object);
+}
