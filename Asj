@@ -1,0 +1,21 @@
+{
+  "ConnectionStrings": {
+    "UserDatabase": "Server=LIN-FR9TRN3;Database=RailwayUserDb;User Id=sa;Password=YOUR_CURRENT_PASSWORD;TrustServerCertificate=True;"
+  },
+
+  "Jwt": {
+    "Key": "RailwayReservationSystem_Jwt_Secret_Key_Change_This_123456789",
+    "Issuer": "RailwayReservationSystem",
+    "Audience": "RailwayReservationClients",
+    "ExpiryMinutes": 60
+  },
+
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+
+  "AllowedHosts": "*"
+}
