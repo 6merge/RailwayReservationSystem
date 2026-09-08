@@ -1,0 +1,12 @@
+{
+  "ConnectionStrings": {
+    "UserDatabase": "Server=LIN-FR9TRN3;Database=RailwayUserDb;User Id=sa;Password=YOUR_PASSWORD;TrustServerCertificate=True;"
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*"
+}
