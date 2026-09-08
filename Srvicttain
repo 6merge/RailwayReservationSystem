@@ -1,0 +1,30 @@
+using TrainService.DTOs;
+
+namespace TrainService.Services;
+
+public interface ITrainService
+{
+    Task<List<TrainResponse>> GetAllTrainsAsync();
+    Task<TrainResponse?> GetTrainByIdAsync(int id);
+    Task<TrainResponse> CreateTrainAsync(CreateTrainRequest 
+
+
+namespace TrainService.DTOs;
+
+public class CreateTrainRequest
+{
+    public string TrainNumber { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+}
+
+
+
+
+namespace TrainService.DTOs;
+
+public class TrainResponse
+{
+    public int Id { get; set; }
+    public string TrainNumber { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+}
