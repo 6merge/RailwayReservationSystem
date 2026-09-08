@@ -1,0 +1,76 @@
+using Microsoft.AspNetCore.Identity;
+using UserService.DTOs;
+using UserService.Entities;
+using UserService.Exceptions;
+using UserService.Repositories;
+
+namespace UserService.Services;
+
+public class UserService : IUserService
+{
+    private readonly IUserRepository _userRepository;
+    private readonly PasswordHasher<User> _passwordHasher;
+
+    public UserService(IUserRepository userRepository)
+    {
+        _userRepository = userRepository;
+        _passwordHasher = new PasswordHasher<User>();
+    }
+
+    public async Task<UserResponse> RegisterAsync(RegisterRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Name))
+            throw new ArgumentException("Name is required.");
+
+        if (string.IsNullOrWhiteSpace(request.Email))
+            throw new ArgumentException("Email is required.");
+
+        if (string.IsNullOrWhiteSpace(request.PhoneNumber))
+            throw new ArgumentException("Phone number is required.");
+
+        if (string.IsNullOrWhiteSpace(request.Password))
+            throw new ArgumentException("Password is required.");
+
+        if (await _userRepository.EmailExistsAsync(request.Email))
+            throw new ConflictException("Email is already registered.");
+
+        if (await _userRepository.PhoneNumberExistsAsync(request.PhoneNumber))
+            throw new ConflictException("Phone number is already registered.");
+
+        var user = new User
+        {
+            Name = request.Name,
+            Email = request.Email,
+            PhoneNumber = request.PhoneNumber,
+            Role = "Passenger",
+            CreatedAt = DateTime.UtcNow
+        };
+
+        user.PasswordHash = _passwordHasher.HashPassword(
+            user,
+            request.Password);
+
+        await _userRepository.AddAsync(user);
+        await _userRepository.SaveChangesAsync();
+
+        return new UserResponse
+        {
+            Id = user.Id,
+            Name = user.Name,
+            Email = user.Email,
+            PhoneNumber = user.PhoneNumber,
+            Role = user.Role,
+            CreatedAt = user.CreatedAt
+        };
+    }
+
+    public Task<string> LoginAsync(LoginRequest request)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<UserResponse?> GetUserAsync(int id)
+    {
+        throw new NotImplementedException();
+    }
+}
