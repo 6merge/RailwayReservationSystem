@@ -1,0 +1,10 @@
+[HttpPost]
+public async Task<IActionResult> CreateTrain(CreateTrainRequest request)
+{
+    var train = await _trainService.CreateTrainAsync(request);
+
+    return CreatedAtAction(
+        nameof(GetTrain),
+        new { id = train.Id },
+        train);
+}
