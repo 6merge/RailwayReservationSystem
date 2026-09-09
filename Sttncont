@@ -1,0 +1,45 @@
+using Microsoft.AspNetCore.Mvc;
+using TrainService.DTOs;
+using TrainService.Services;
+
+namespace TrainService.Controllers;
+
+[ApiController]
+[Route("api/stations")]
+public class StationsController : ControllerBase
+{
+    private readonly IStationService _stationService;
+
+    public StationsController(IStationService stationService)
+    {
+        _stationService = stationService;
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetAllStations()
+    {
+        var stations = await _stationService.GetAllStationsAsync();
+
+        return Ok(stations);
+    }
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetStation(int id)
+    {
+        var station = await _stationService.GetStationByIdAsync(id);
+
+        return Ok(station);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> CreateStation(
+        CreateStationRequest request)
+    {
+        var station = await _stationService.CreateStationAsync(request);
+
+        return CreatedAtAction(
+            nameof(GetStation),
+            new { id = station.Id },
+            station);
+    }
+}
