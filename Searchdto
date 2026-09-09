@@ -1,0 +1,26 @@
+namespace TrainService.DTOs;
+
+public class TrainSearchRequest
+{
+    public int FromStationId { get; set; }
+    public int ToStationId { get; set; }
+}
+
+namespace TrainService.DTOs;
+
+public class TrainSearchResponse
+{
+    public int TrainId { get; set; }
+    public string TrainNumber { get; set; } = string.Empty;
+    public string TrainName { get; set; } = string.Empty;
+
+    public int FromStationId { get; set; }
+    public string FromStationCode { get; set; } = string.Empty;
+    public string FromStationName { get; set; } = string.Empty;
+    public TimeSpan DepartureTime { get; set; }
+
+    public int ToStationId { get; set; }
+    public string ToStationCode { get; set; } = string.Empty;
+    public string ToStationName { get; set; } = string.Empty;
+    public TimeSpan ArrivalTime { get; set; }
+}
