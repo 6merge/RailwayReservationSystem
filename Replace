@@ -1,0 +1,130 @@
+namespace TrainService.DTOs;
+
+public class TrainSearchRequest
+{
+    public string FromStationName { get; set; } = string.Empty;
+    public string ToStationName { get; set; } = Task<List<Train>> SearchAsync(
+    string fromStationName,
+    string toStationName);
+
+
+public async Task<List<Train>> SearchAsync(
+    string fromStationName,
+    string toStationName)
+{
+    var trains = await _context.Trains
+        .Include(t => t.RouteStops)
+            .ThenInclude(r => r.Station)
+        .ToListAsync();
+
+    return trains
+        .Where(t =>
+        {
+            var fromStop = t.RouteStops
+                .FirstOrDefault(r =>
+                    r.Station.Name == fromStationName);
+
+            var toStop = t.RouteStops
+                .FirstOrDefault(r =>
+                    r.Station.Name == toStationName);
+
+            return fromStop != null &&
+                   toStop != null &&
+                   fromStop.StopOrder < toStop.StopOrder;
+        })
+        .ToList();
+}
+
+
+
+
+public async Task<List<Train>> SearchAsync(
+    string fromStationName,
+    string toStationName)
+{
+    var trains = await _context.Trains
+        .Include(t => t.RouteStops)
+            .ThenInclude(r => r.Station)
+        .ToListAsync();
+
+    return trains
+        .Where(t =>
+        {
+            var fromStop = t.RouteStops
+                .FirstOrDefault(r =>
+                    r.Station.Name == fromStationName);
+
+            var toStop = t.RouteStops
+                .FirstOrDefault(r =>
+                    r.Station.Name == toStationName);
+
+            return fromStop != null &&
+                   toStop != null &&
+                   fromStop.StopOrder < toStop.StopOrder;
+        })
+        .ToList();
+
+
+}
+
+public async Task<List<TrainSearchResponse>> SearchTrainsAsync(
+    TrainSearchRequest request)
+{
+    if (string.IsNullOrWhiteSpace(request.FromStationName))
+        throw new ArgumentException(
+            "Source station name is required.");
+
+    if (string.IsNullOrWhiteSpace(request.ToStationName))
+        throw new ArgumentException(
+            "Destination station name is required.");
+
+    if (request.FromStationName.Equals(
+            request.ToStationName,
+            StringComparison.OrdinalIgnoreCase))
+        throw new ArgumentException(
+            "Source and destination stations must be different.");
+
+    var trains = await _trainRepository.SearchAsync(
+        request.FromStationName,
+        request.ToStationName);
+
+    return trains.Select(train =>
+    {
+        var fromStop = train.RouteStops
+            .First(r => r.Station.Name.Equals(
+                request.FromStationName,
+                StringComparison.OrdinalIgnoreCase));
+
+        var toStop = train.RouteStops
+            .First(r => r.Station.Name.Equals(
+                request.ToStationName,
+                StringComparison.OrdinalIgnoreCase));
+
+        return new TrainSearchResponse
+        {
+            TrainId = train.Id,
+            TrainNumber = train.TrainNumber,
+            TrainName = train.Name,
+
+            FromStationId = fromStop.StationId,
+            FromStationCode = fromStop.Station.Code,
+            FromStationName = fromStop.Station.Name,
+            DepartureTime = fromStop.DepartureTime,
+
+            ToStationId = toStop.StationId,
+            ToStationCode = toStop.Station.Code,
+            ToStationName = toStop.Station.Name,
+            ArrivalTime = toStop.ArrivalTime
+        };
+    }).ToList();
+}
+
+
+
+
+
+
+
+
+
+
