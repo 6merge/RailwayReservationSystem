@@ -1,0 +1,48 @@
+using Microsoft.AspNetCore.Mvc;
+using TrainService.DTOs;
+using TrainService.Services;
+
+namespace TrainService.Controllers;
+
+[ApiController]
+[Route("api/coaches")]
+public class CoachesController : ControllerBase
+{
+    private readonly ICoachService _coachService;
+
+    public CoachesController(ICoachService coachService)
+    {
+        _coachService = coachService;
+    }
+
+    [HttpGet("train/{trainId}")]
+    public async Task<IActionResult> GetCoachesByTrain(int trainId)
+    {
+        var coaches = await _coachService
+            .GetCoachesByTrainIdAsync(trainId);
+
+        return Ok(coaches);
+    }
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetCoach(int id)
+    {
+        var coach = await _coachService
+            .GetCoachByIdAsync(id);
+
+        return Ok(coach);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> CreateCoach(
+        CreateCoachRequest request)
+    {
+        var coach = await _coachService
+            .CreateCoachAsync(request);
+
+        return CreatedAtAction(
+            nameof(GetCoach),
+            new { id = coach.Id },
+            coach);
+    }
+}
