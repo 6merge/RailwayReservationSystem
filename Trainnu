@@ -1,0 +1,118 @@
+using Moq;
+using NUnit.Framework;
+using TrainService.DTOs;
+using TrainService.Entities;
+using TrainService.Exceptions;
+using TrainService.Repositories;
+using TrainService.Services;
+
+namespace TrainService.Tests;
+
+[TestFixture]
+public class TrainServiceTests
+{
+    private Mock<ITrainRepository> _repositoryMock = null!;
+    private ITrainService _trainService = null!;
+
+    [SetUp]
+    public void Setup()
+    {
+        _repositoryMock = new Mock<ITrainRepository>();
+
+        _trainService = new TrainService.Services.TrainService(
+            _repositoryMock.Object);
+    }
+
+    [Test]
+    public async Task CreateTrainAsync_ValidRequest_ReturnsTrain()
+    {
+        var request = new CreateTrainRequest
+        {
+            TrainNumber = "12951",
+            Name = "Mumbai Rajdhani"
+        };
+
+        _repositoryMock
+            .Setup(r => r.AddAsync(It.IsAny<Train>()))
+            .Returns(Task.CompletedTask);
+
+        _repositoryMock
+            .Setup(r => r.SaveChangesAsync())
+            .Callback(() =>
+            {
+                // Simulate database-generated ID
+            })
+            .Returns(Task.CompletedTask);
+
+        var result = await _trainService.CreateTrainAsync(request);
+
+        Assert.That(result.TrainNumber, Is.EqualTo("12951"));
+        Assert.That(result.Name, Is.EqualTo("Mumbai Rajdhani"));
+
+        _repositoryMock.Verify(
+            r => r.AddAsync(It.IsAny<Train>()),
+            Times.Once);
+
+        _repositoryMock.Verify(
+            r => r.SaveChangesAsync(),
+            Times.Once);
+    }
+
+    [Test]
+    public void CreateTrainAsync_EmptyTrainNumber_ThrowsException()
+    {
+        var request = new CreateTrainRequest
+        {
+            TrainNumber = "",
+            Name = "Mumbai Rajdhani"
+        };
+
+        Assert.ThrowsAsync<ArgumentException>(
+            async () => await _trainService.CreateTrainAsync(request));
+    }
+
+    [Test]
+    public void CreateTrainAsync_EmptyName_ThrowsException()
+    {
+        var request = new CreateTrainRequest
+        {
+            TrainNumber = "12951",
+            Name = ""
+        };
+
+        Assert.ThrowsAsync<ArgumentException>(
+            async () => await _trainService.CreateTrainAsync(request));
+    }
+
+    [Test]
+    public async Task GetTrainByIdAsync_ExistingTrain_ReturnsTrain()
+    {
+        var train = new Train
+        {
+            Id = 1,
+            TrainNumber = "12951",
+            Name = "Mumbai Rajdhani"
+        };
+
+        _repositoryMock
+            .Setup(r => r.GetByIdAsync(1))
+            .ReturnsAsync(train);
+
+        var result = await _trainService.GetTrainByIdAsync(1);
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.Id, Is.EqualTo(1));
+        Assert.That(result.TrainNumber, Is.EqualTo("12951"));
+    }
+
+    [Test]
+    public void GetTrainByIdAsync_TrainDoesNotExist_ThrowsNotFound()
+    {
+        _repositoryMock
+            .Setup(r => r.GetByIdAsync(999))
+            .ReturnsAsync((Train?)null);
+
+        Assert.ThrowsAsync<NotFoundException>(
+            async () => await _trainService.GetTrainByIdAsync(999));
+    }
+}
