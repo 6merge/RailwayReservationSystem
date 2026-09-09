@@ -1,0 +1,24 @@
+public async Task<List<Train>> SearchAsync(
+    int fromStationId,
+    int toStationId)
+{
+    var trains = await _context.Trains
+        .Include(t => t.RouteStops)
+            .ThenInclude(r => r.Station)
+        .ToListAsync();
+
+    return trains
+        .Where(t =>
+        {
+            var fromStop = t.RouteStops
+                .FirstOrDefault(r => r.StationId == fromStationId);
+
+            var toStop = t.RouteStops
+                .FirstOrDefault(r => r.StationId == toStationId);
+
+            return fromStop != null &&
+                   toStop != null &&
+                   fromStop.StopOrder < toStop.StopOrder;
+        })
+        .ToList();
+}
