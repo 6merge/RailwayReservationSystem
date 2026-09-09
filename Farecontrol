@@ -1,0 +1,61 @@
+using Microsoft.AspNetCore.Mvc;
+using TrainService.DTOs;
+using TrainService.Services;
+
+namespace TrainService.Controllers;
+
+[ApiController]
+[Route("api/fares")]
+public class FaresController : ControllerBase
+{
+    private readonly IFareService _fareService;
+
+    public FaresController(IFareService fareService)
+    {
+        _fareService = fareService;
+    }
+
+    [HttpGet("train/{trainId}")]
+    public async Task<IActionResult> GetFaresByTrain(int trainId)
+    {
+        var fares = await _fareService
+            .GetFaresByTrainIdAsync(trainId);
+
+        return Ok(fares);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetFare(
+        [FromQuery] int trainId,
+        [FromQuery] int fromStationId,
+        [FromQuery] int toStationId,
+        [FromQuery] string coachType)
+    {
+        var fare = await _fareService.GetFareAsync(
+            trainId,
+            fromStationId,
+            toStationId,
+            coachType);
+
+        return Ok(fare);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> CreateFare(
+        CreateFareRequest request)
+    {
+        var fare = await _fareService
+            .CreateFareAsync(request);
+
+        return CreatedAtAction(
+            nameof(GetFare),
+            new
+            {
+                trainId = fare.TrainId,
+                fromStationId = fare.FromStationId,
+                toStationId = fare.ToStationId,
+                coachType = fare.CoachType
+            },
+            fare);
+    }
+}
