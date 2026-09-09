@@ -1,0 +1,83 @@
+using TrainService.DTOs;
+
+namespace TrainService.Services;
+
+public interface ISeatService
+{
+    Task<List<SeatResponse>> GetSeatsByCoachIdAsync(int coachId);
+
+    Task<SeatResponse?> GetSeatByIdAsync(int id);
+
+    Task<SeatResponse> CreateSeatAsync(CreateSeatRequest request);
+}
+
+using TrainService.DTOs;
+using TrainService.Entities;
+using TrainService.Exceptions;
+using TrainService.Repositories;
+
+namespace TrainService.Services;
+
+public class SeatService : ISeatService
+{
+    private readonly ISeatRepository _seatRepository;
+
+    public SeatService(ISeatRepository seatRepository)
+    {
+        _seatRepository = seatRepository;
+    }
+
+    public async Task<List<SeatResponse>> GetSeatsByCoachIdAsync(
+        int coachId)
+    {
+        var seats = await _seatRepository.GetByCoachIdAsync(coachId);
+
+        return seats.Select(s => new SeatResponse
+        {
+            Id = s.Id,
+            CoachId = s.CoachId,
+            SeatNumber = s.SeatNumber
+        }).ToList();
+    }
+
+    public async Task<SeatResponse?> GetSeatByIdAsync(int id)
+    {
+        var seat = await _seatRepository.GetByIdAsync(id);
+
+        if (seat == null)
+            throw new NotFoundException("Seat not found.");
+
+        return new SeatResponse
+        {
+            Id = seat.Id,
+            CoachId = seat.CoachId,
+            SeatNumber = seat.SeatNumber
+        };
+    }
+
+    public async Task<SeatResponse> CreateSeatAsync(
+        CreateSeatRequest request)
+    {
+        if (request.CoachId <= 0)
+            throw new ArgumentException("Valid coach ID is required.");
+
+        if (string.IsNullOrWhiteSpace(request.SeatNumber))
+            throw new ArgumentException("Seat number is required.");
+
+        var seat = new Seat
+        {
+            CoachId = request.CoachId,
+            SeatNumber = request.SeatNumber
+        };
+
+        await _seatRepository.AddAsync(seat);
+        await _seatRepository.SaveChangesAsync();
+
+        return new SeatResponse
+        {
+            Id = seat.Id,
+            CoachId = seat.CoachId,
+            SeatNumber = seat.SeatNumber
+        };
+    }
+}
