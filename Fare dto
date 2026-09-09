@@ -1,0 +1,23 @@
+namespace TrainService.DTOs;
+
+public class CreateFareRequest
+{
+    public int TrainId { get; set; }
+    public int FromStationId { get; set; }
+    public int ToStationId { get; set; }
+    public string CoachType { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+}
+
+
+namespace TrainService.DTOs;
+
+public class FareResponse
+{
+    public int Id { get; set; }
+    public int TrainId { get; set; }
+    public int FromStationId { get; set; }
+    public int ToStationId { get; set; }
+    public string CoachType { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+}
