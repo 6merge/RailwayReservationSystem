@@ -1,0 +1,91 @@
+using TrainService.DTOs;
+
+namespace TrainService.Services;
+
+public interface ICoachService
+{
+    Task<List<CoachResponse>> GetCoachesByTrainIdAsync(int trainId);
+
+    Task<CoachResponse?> GetCoachByIdAsync(int id);
+
+    Task<CoachResponse> CreateCoachAsync(CreateCoachRequest request);
+}
+
+
+using TrainService.DTOs;
+using TrainService.Entities;
+using TrainService.Exceptions;
+using TrainService.Repositories;
+
+namespace TrainService.Services;
+
+public class CoachService : ICoachService
+{
+    private readonly ICoachRepository _coachRepository;
+
+    public CoachService(ICoachRepository coachRepository)
+    {
+        _coachRepository = coachRepository;
+    }
+
+    public async Task<List<CoachResponse>> GetCoachesByTrainIdAsync(
+        int trainId)
+    {
+        var coaches = await _coachRepository.GetByTrainIdAsync(trainId);
+
+        return coaches.Select(c => new CoachResponse
+        {
+            Id = c.Id,
+            TrainId = c.TrainId,
+            CoachNumber = c.CoachNumber,
+            CoachType = c.CoachType
+        }).ToList();
+    }
+
+    public async Task<CoachResponse?> GetCoachByIdAsync(int id)
+    {
+        var coach = await _coachRepository.GetByIdAsync(id);
+
+        if (coach == null)
+            throw new NotFoundException("Coach not found.");
+
+        return new CoachResponse
+        {
+            Id = coach.Id,
+            TrainId = coach.TrainId,
+            CoachNumber = coach.CoachNumber,
+            CoachType = coach.CoachType
+        };
+    }
+
+    public async Task<CoachResponse> CreateCoachAsync(
+        CreateCoachRequest request)
+    {
+        if (request.TrainId <= 0)
+            throw new ArgumentException("Valid train ID is required.");
+
+        if (string.IsNullOrWhiteSpace(request.CoachNumber))
+            throw new ArgumentException("Coach number is required.");
+
+        if (string.IsNullOrWhiteSpace(request.CoachType))
+            throw new ArgumentException("Coach type is required.");
+
+        var coach = new Coach
+        {
+            TrainId = request.TrainId,
+            CoachNumber = request.CoachNumber,
+            CoachType = request.CoachType
+        };
+
+        await _coachRepository.AddAsync(coach);
+        await _coachRepository.SaveChangesAsync();
+
+        return new CoachResponse
+        {
+            Id = coach.Id,
+            TrainId = coach.TrainId,
+            CoachNumber = coach.CoachNumber,
+            CoachType = coach.CoachType
+        };
+    }
+}
