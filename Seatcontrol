@@ -1,0 +1,48 @@
+using Microsoft.AspNetCore.Mvc;
+using TrainService.DTOs;
+using TrainService.Services;
+
+namespace TrainService.Controllers;
+
+[ApiController]
+[Route("api/seats")]
+public class SeatsController : ControllerBase
+{
+    private readonly ISeatService _seatService;
+
+    public SeatsController(ISeatService seatService)
+    {
+        _seatService = seatService;
+    }
+
+    [HttpGet("coach/{coachId}")]
+    public async Task<IActionResult> GetSeatsByCoach(int coachId)
+    {
+        var seats = await _seatService
+            .GetSeatsByCoachIdAsync(coachId);
+
+        return Ok(seats);
+    }
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetSeat(int id)
+    {
+        var seat = await _seatService
+            .GetSeatByIdAsync(id);
+
+        return Ok(seat);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> CreateSeat(
+        CreateSeatRequest request)
+    {
+        var seat = await _seatService
+            .CreateSeatAsync(request);
+
+        return CreatedAtAction(
+            nameof(GetSeat),
+            new { id = seat.Id },
+            seat);
+    }
+}
