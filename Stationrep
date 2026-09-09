@@ -1,0 +1,57 @@
+using TrainService.Entities;
+
+namespace TrainService.Repositories;
+
+public interface IStationRepository
+{
+    Task<List<Station>> GetAllAsync();
+    Task<Station?> GetByIdAsync(int id);
+    Task<Station?> GetByCodeAsync(string code);
+    Task AddAsync(Station station);
+    Task SaveChangesAsync();
+}
+
+
+using Microsoft.EntityFrameworkCore;
+using TrainService.Data;
+using TrainService.Entities;
+
+namespace TrainService.Repositories;
+
+public class StationRepository : IStationRepository
+{
+    private readonly TrainDbContext _context;
+
+    public StationRepository(TrainDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<List<Station>> GetAllAsync()
+    {
+        return await _context.Stations
+            .ToListAsync();
+    }
+
+    public async Task<Station?> GetByIdAsync(int id)
+    {
+        return await _context.Stations
+            .FirstOrDefaultAsync(s => s.Id == id);
+    }
+
+    public async Task<Station?> GetByCodeAsync(string code)
+    {
+        return await _context.Stations
+            .FirstOrDefaultAsync(s => s.Code == code);
+    }
+
+    public async Task AddAsync(Station station)
+    {
+        await _context.Stations.AddAsync(station);
+    }
+
+    public async Task SaveChangesAsync()
+    {
+        await _context.SaveChangesAsync();
+    }
+}
