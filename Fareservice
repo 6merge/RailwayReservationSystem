@@ -1,0 +1,123 @@
+using TrainService.DTOs;
+
+namespace TrainService.Services;
+
+public interface IFareService
+{
+    Task<List<FareResponse>> GetFaresByTrainIdAsync(int trainId);
+
+    Task<FareResponse?> GetFareAsync(
+        int trainId,
+        int fromStationId,
+        int toStationId,
+        string coachType);
+
+    Task<FareResponse> CreateFareAsync(CreateFareRequest request);
+}
+
+using TrainService.DTOs;
+using TrainService.Entities;
+using TrainService.Exceptions;
+using TrainService.Repositories;
+
+namespace TrainService.Services;
+
+public class FareService : IFareService
+{
+    private readonly IFareRepository _fareRepository;
+
+    public FareService(IFareRepository fareRepository)
+    {
+        _fareRepository = fareRepository;
+    }
+
+    public async Task<List<FareResponse>> GetFaresByTrainIdAsync(
+        int trainId)
+    {
+        var fares = await _fareRepository.GetByTrainIdAsync(trainId);
+
+        return fares.Select(f => new FareResponse
+        {
+            Id = f.Id,
+            TrainId = f.TrainId,
+            FromStationId = f.FromStationId,
+            ToStationId = f.ToStationId,
+            CoachType = f.CoachType,
+            Amount = f.Amount
+        }).ToList();
+    }
+
+    public async Task<FareResponse?> GetFareAsync(
+        int trainId,
+        int fromStationId,
+        int toStationId,
+        string coachType)
+    {
+        var fare = await _fareRepository.GetFareAsync(
+            trainId,
+            fromStationId,
+            toStationId,
+            coachType);
+
+        if (fare == null)
+            throw new NotFoundException("Fare not found.");
+
+        return new FareResponse
+        {
+            Id = fare.Id,
+            TrainId = fare.TrainId,
+            FromStationId = fare.FromStationId,
+            ToStationId = fare.ToStationId,
+            CoachType = fare.CoachType,
+            Amount = fare.Amount
+        };
+    }
+
+    public async Task<FareResponse> CreateFareAsync(
+        CreateFareRequest request)
+    {
+        if (request.TrainId <= 0)
+            throw new ArgumentException("Valid train ID is required.");
+
+        if (request.FromStationId <= 0)
+            throw new ArgumentException(
+                "Valid source station ID is required.");
+
+        if (request.ToStationId <= 0)
+            throw new ArgumentException(
+                "Valid destination station ID is required.");
+
+        if (request.FromStationId == request.ToStationId)
+            throw new ArgumentException(
+                "Source and destination stations must be different.");
+
+        if (string.IsNullOrWhiteSpace(request.CoachType))
+            throw new ArgumentException("Coach type is required.");
+
+        if (request.Amount <= 0)
+            throw new ArgumentException(
+                "Fare amount must be greater than zero.");
+
+        var fare = new Fare
+        {
+            TrainId = request.TrainId,
+            FromStationId = request.FromStationId,
+            ToStationId = request.ToStationId,
+            CoachType = request.CoachType,
+            Amount = request.Amount
+        };
+
+        await _fareRepository.AddAsync(fare);
+        await _fareRepository.SaveChangesAsync();
+
+        return new FareResponse
+        {
+            Id = fare.Id,
+            TrainId = fare.TrainId,
+            FromStationId = fare.FromStationId,
+            ToStationId = fare.ToStationId,
+            CoachType = fare.CoachType,
+            Amount = fare.Amount
+        };
+    }
+}
