@@ -1,0 +1,117 @@
+namespace TrainService.Exceptions;
+
+public class ConflictException : Exception
+{
+    public ConflictException(string message)
+        : base(message)
+    {
+    }
+}
+
+using TrainService.DTOs;
+using TrainService.Entities;
+using TrainService.Exceptions;
+using TrainService.Repositories;
+
+namespace TrainService.Services;
+
+public class StationService : IStationService
+{
+    private readonly IStationRepository _stationRepository;
+
+    public StationService(IStationRepository stationRepository)
+    {
+        _stationRepository = stationRepository;
+    }
+
+    public async Task<List<StationResponse>> GetAllStationsAsync()
+    {
+        var stations = await _stationRepository.GetAllAsync();
+
+        return stations.Select(s => new StationResponse
+        {
+            Id = s.Id,
+            Code = s.Code,
+            Name = s.Name
+        }).ToList();
+    }
+
+    public async Task<StationResponse?> GetStationByIdAsync(int id)
+    {
+        var station = await _stationRepository.GetByIdAsync(id);
+
+        if (station == null)
+            throw new NotFoundException("Station not found.");
+
+        return new StationResponse
+        {
+            Id = station.Id,
+            Code = station.Code,
+            Name = station.Name
+        };
+    }
+
+    public async Task<StationResponse> CreateStationAsync(
+        CreateStationRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Code))
+            throw new ArgumentException("Station code is required.");
+
+        if (string.IsNullOrWhiteSpace(request.Name))
+            throw new ArgumentException("Station name is required.");
+
+        var existingStation =
+            await _stationRepository.GetByCodeAsync(request.Code);
+
+        if (existingStation != null)
+            throw new ConflictException("Station code already exists.");
+
+        var station = new Station
+        {
+            Code = request.Code,
+            Name = request.Name
+        };
+
+        await _stationRepository.AddAsync(station);
+        await _stationRepository.SaveChangesAsync();
+
+        return new StationResponse
+        {
+            Id = station.Id,
+            Code = station.Code,
+            Name = station.Name
+        };
+    }
+}
+
+namespace TrainService.DTOs;
+
+public class StationResponse
+{
+    public int Id { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+}
+
+
+
+namespace TrainService.DTOs;
+
+public class CreateStationRequest
+{
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+}
+
+
+
+using TrainService.DTOs;
+
+namespace TrainService.Services;
+
+public interface IStationService
+{
+    Task<List<StationResponse>> GetAllStationsAsync();
+    Task<StationResponse?> GetStationByIdAsync(int id);
+    Task<StationResponse> CreateStationAsync(CreateStationRequest request);
+}
