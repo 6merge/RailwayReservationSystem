@@ -1,0 +1,56 @@
+using TrainService.Entities;
+
+namespace TrainService.Repositories;
+
+public interface IRouteStopRepository
+{
+    Task<List<RouteStop>> GetByTrainIdAsync(int trainId);
+    Task<RouteStop?> GetByIdAsync(int id);
+    Task AddAsync(RouteStop routeStop);
+    Task SaveChangesAsync();
+
+
+}
+
+using Microsoft.EntityFrameworkCore;
+using TrainService.Data;
+using TrainService.Entities;
+
+namespace TrainService.Repositories;
+
+public class RouteStopRepository : IRouteStopRepository
+{
+    private readonly TrainDbContext _context;
+
+    public RouteStopRepository(TrainDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<List<RouteStop>> GetByTrainIdAsync(int trainId)
+    {
+        return await _context.RouteStops
+            .Include(r => r.Station)
+            .Where(r => r.TrainId == trainId)
+            .OrderBy(r => r.StopOrder)
+            .ToListAsync();
+    }
+
+    public async Task<RouteStop?> GetByIdAsync(int id)
+    {
+        return await _context.RouteStops
+            .Include(r => r.Station)
+            .FirstOrDefaultAsync(r => r.Id == id);
+    }
+
+    public async Task AddAsync(RouteStop routeStop)
+    {
+        await _context.RouteStops.AddAsync(routeStop);
+    }
+
+    public async Task SaveChangesAsync()
+    {
+        await _context.SaveChangesAsync();
+    }
+}
+
