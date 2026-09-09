@@ -1,0 +1,39 @@
+using Microsoft.AspNetCore.Mvc;
+using TrainService.DTOs;
+using TrainService.Services;
+
+namespace TrainService.Controllers;
+
+[ApiController]
+[Route("api/routes")]
+public class RouteStopsController : ControllerBase
+{
+    private readonly IRouteStopService _routeStopService;
+
+    public RouteStopsController(IRouteStopService routeStopService)
+    {
+        _routeStopService = routeStopService;
+    }
+
+    [HttpGet("train/{trainId}")]
+    public async Task<IActionResult> GetRoute(int trainId)
+    {
+        var route = await _routeStopService
+            .GetRouteByTrainIdAsync(trainId);
+
+        return Ok(route);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> CreateRouteStop(
+        CreateRouteStopRequest request)
+    {
+        var routeStop = await _routeStopService
+            .CreateRouteStopAsync(request);
+
+        return CreatedAtAction(
+            nameof(GetRoute),
+            new { trainId = routeStop.TrainId },
+            routeStop);
+    }
+}
