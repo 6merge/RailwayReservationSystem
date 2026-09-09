@@ -1,0 +1,78 @@
+using TrainService.DTOs;
+using TrainService.Entities;
+using TrainService.Exceptions;
+using TrainService.Repositories;
+
+namespace TrainService.Services;
+
+public class RouteStopService : IRouteStopService
+{
+    private readonly IRouteStopRepository _routeStopRepository;
+
+    public RouteStopService(IRouteStopRepository routeStopRepository)
+    {
+        _routeStopRepository = routeStopRepository;
+    }
+
+    public async Task<List<RouteStopResponse>> GetRouteByTrainIdAsync(
+        int trainId)
+    {
+        var routeStops =
+            await _routeStopRepository.GetByTrainIdAsync(trainId);
+
+        return routeStops.Select(r => new RouteStopResponse
+        {
+            Id = r.Id,
+            TrainId = r.TrainId,
+            StationId = r.StationId,
+            StationCode = r.Station.Code,
+            StationName = r.Station.Name,
+            StopOrder = r.StopOrder,
+            ArrivalTime = r.ArrivalTime,
+            DepartureTime = r.DepartureTime
+        }).ToList();
+    }
+
+    public async Task<RouteStopResponse> CreateRouteStopAsync(
+        CreateRouteStopRequest request)
+    {
+        if (request.TrainId <= 0)
+            throw new ArgumentException("Valid train ID is required.");
+
+        if (request.StationId <= 0)
+            throw new ArgumentException("Valid station ID is required.");
+
+        if (request.StopOrder <= 0)
+            throw new ArgumentException("Stop order must be greater than zero.");
+
+        var routeStop = new RouteStop
+        {
+            TrainId = request.TrainId,
+            StationId = request.StationId,
+            StopOrder = request.StopOrder,
+            ArrivalTime = request.ArrivalTime,
+            DepartureTime = request.DepartureTime
+        };
+
+        await _routeStopRepository.AddAsync(routeStop);
+        await _routeStopRepository.SaveChangesAsync();
+
+        var createdRouteStop =
+            await _routeStopRepository.GetByIdAsync(routeStop.Id);
+
+        if (createdRouteStop == null)
+            throw new NotFoundException("Route stop could not be retrieved.");
+
+        return new RouteStopResponse
+        {
+            Id = createdRouteStop.Id,
+            TrainId = createdRouteStop.TrainId,
+            StationId = createdRouteStop.StationId,
+            StationCode = createdRouteStop.Station.Code,
+            StationName = createdRouteStop.Station.Name,
+            StopOrder = createdRouteStop.StopOrder,
+            ArrivalTime = createdRouteStop.ArrivalTime,
+            DepartureTime = createdRouteStop.DepartureTime
+        };
+    }
+}
