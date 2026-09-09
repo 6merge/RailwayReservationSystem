@@ -1,0 +1,66 @@
+using TrainService.Entities;
+
+namespace TrainService.Repositories;
+
+public interface IFareRepository
+{
+    Task<List<Fare>> GetByTrainIdAsync(int trainId);
+
+    Task<Fare?> GetFareAsync(
+        int trainId,
+        int fromStationId,
+        int toStationId,
+        string coachType);
+
+    Task AddAsync(Fare fare);
+
+    Task SaveChangesAsync();
+}
+
+
+using Microsoft.EntityFrameworkCore;
+using TrainService.Data;
+using TrainService.Entities;
+
+namespace TrainService.Repositories;
+
+public class FareRepository : IFareRepository
+{
+    private readonly TrainDbContext _context;
+
+    public FareRepository(TrainDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<List<Fare>> GetByTrainIdAsync(int trainId)
+    {
+        return await _context.Fares
+            .Where(f => f.TrainId == trainId)
+            .ToListAsync();
+    }
+
+    public async Task<Fare?> GetFareAsync(
+        int trainId,
+        int fromStationId,
+        int toStationId,
+        string coachType)
+    {
+        return await _context.Fares
+            .FirstOrDefaultAsync(f =>
+                f.TrainId == trainId &&
+                f.FromStationId == fromStationId &&
+                f.ToStationId == toStationId &&
+                f.CoachType == coachType);
+    }
+
+    public async Task AddAsync(Fare fare)
+    {
+        await _context.Fares.AddAsync(fare);
+    }
+
+    public async Task SaveChangesAsync()
+    {
+        await _context.SaveChangesAsync();
+    }
+}
