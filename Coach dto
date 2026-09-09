@@ -1,0 +1,18 @@
+namespace TrainService.DTOs;
+
+public class CoachResponse
+{
+    public int Id { get; set; }
+    public int TrainId { get; set; }
+    public string CoachNumber { get; set; } = string.Empty;
+    public string CoachType { get; set; } = string.Empty;
+}
+
+namespace TrainService.DTOs;
+
+public class CreateCoachRequest
+{
+    public int TrainId { get; set; }
+    public string CoachNumber { get; set; } = string.Empty;
+    public string CoachType { get; set; } = string.Empty;
+}
