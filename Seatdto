@@ -1,0 +1,16 @@
+namespace TrainService.DTOs;
+
+public class CreateSeatRequest
+{
+    public int CoachId { get; set; }
+    public string SeatNumber { get; set; } = string.Empty;
+}
+
+namespace TrainService.DTOs;
+
+public class SeatResponse
+{
+    public int Id { get; set; }
+    public int CoachId { get; set; }
+    public string SeatNumber { get; set; } = string.Empty;
+}
