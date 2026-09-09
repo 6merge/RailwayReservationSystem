@@ -1,0 +1,45 @@
+public async Task<List<TrainSearchResponse>> SearchTrainsAsync(
+    TrainSearchRequest request)
+{
+    if (request.FromStationId <= 0)
+        throw new ArgumentException(
+            "Valid source station ID is required.");
+
+    if (request.ToStationId <= 0)
+        throw new ArgumentException(
+            "Valid destination station ID is required.");
+
+    if (request.FromStationId == request.ToStationId)
+        throw new ArgumentException(
+            "Source and destination stations must be different.");
+
+    var trains = await _trainRepository.SearchAsync(
+        request.FromStationId,
+        request.ToStationId);
+
+    return trains.Select(train =>
+    {
+        var fromStop = train.RouteStops
+            .First(r => r.StationId == request.FromStationId);
+
+        var toStop = train.RouteStops
+            .First(r => r.StationId == request.ToStationId);
+
+        return new TrainSearchResponse
+        {
+            TrainId = train.Id,
+            TrainNumber = train.TrainNumber,
+            TrainName = train.Name,
+
+            FromStationId = fromStop.StationId,
+            FromStationCode = fromStop.Station.Code,
+            FromStationName = fromStop.Station.Name,
+            DepartureTime = fromStop.DepartureTime,
+
+            ToStationId = toStop.StationId,
+            ToStationCode = toStop.Station.Code,
+            ToStationName = toStop.Station.Name,
+            ArrivalTime = toStop.ArrivalTime
+        };
+    }).ToList();
+}
