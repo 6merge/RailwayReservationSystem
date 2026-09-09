@@ -1,0 +1,52 @@
+using TrainService.Entities;
+
+namespace TrainService.Repositories;
+
+public interface ICoachRepository
+{
+    Task<List<Coach>> GetByTrainIdAsync(int trainId);
+    Task<Coach?> GetByIdAsync(int id);
+    Task AddAsync(Coach coach);
+    Task SaveChangesAsync();
+} 
+
+using Microsoft.EntityFrameworkCore;
+using TrainService.Data;
+using TrainService.Entities;
+
+namespace TrainService.Repositories;
+
+public class CoachRepository : ICoachRepository
+{
+    private readonly TrainDbContext _context;
+
+    public CoachRepository(TrainDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<List<Coach>> GetByTrainIdAsync(int trainId)
+    {
+        return await _context.Coaches
+            .Where(c => c.TrainId == trainId)
+            .Include(c => c.Seats)
+            .ToListAsync();
+    }
+
+    public async Task<Coach?> GetByIdAsync(int id)
+    {
+        return await _context.Coaches
+            .Include(c => c.Seats)
+            .FirstOrDefaultAsync(c => c.Id == id);
+    }
+
+    public async Task AddAsync(Coach coach)
+    {
+        await _context.Coaches.AddAsync(coach);
+    }
+
+    public async Task SaveChangesAsync()
+    {
+        await _context.SaveChangesAsync();
+    }
+}
