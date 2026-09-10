@@ -1,0 +1,116 @@
+namespace ReservationService.Entities;
+
+public class PaymentRecord
+{
+    public int Id { get; set; }
+
+    public int BookingId { get; set; }
+
+    public string TransactionId { get; set; } = string.Empty;
+
+    public decimal Amount { get; set; }
+
+    public string Status { get; set; } = string.Empty;
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public Booking Booking { get; set; } = null!;
+}
+
+
+namespace ReservationService.Entities;
+
+public class WaitlistEntry
+{
+    public int Id { get; set; }
+
+    public int BookingId { get; set; }
+
+    public int Position { get; set; }
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public Booking Booking { get; set; } = null!;
+}
+
+
+namespace ReservationService.Entities;
+
+public class SeatAllocation
+{
+    public int Id { get; set; }
+
+    public int BookingId { get; set; }
+
+    public int PassengerId { get; set; }
+
+    public int CoachId { get; set; }
+
+    public int SeatId { get; set; }
+
+    public int FromStationId { get; set; }
+
+    public int ToStationId { get; set; }
+
+    public Booking Booking { get; set; } = null!;
+
+    public BookingPassenger Passenger { get; set; } = null!;
+}
+
+
+
+
+namespace ReservationService.Entities;
+
+public class BookingPassenger
+{
+    public int Id { get; set; }
+
+    public int BookingId { get; set; }
+
+    public string Name { get; set; } = string.Empty;
+
+    public int Age { get; set; }
+
+    public string Gender { get; set; } = string.Empty;
+
+    public string? Preference { get; set; }
+
+    public Booking Booking { get; set; } = null!;
+}
+
+
+namespace ReservationService.Entities;
+
+public class Booking
+{
+    public int Id { get; set; }
+
+    public string PNR { get; set; } = string.Empty;
+
+    public int UserId { get; set; }
+
+    public int TrainId { get; set; }
+
+    public int FromStationId { get; set; }
+
+    public int ToStationId { get; set; }
+
+    public DateTime JourneyDate { get; set; }
+
+    public string Quota { get; set; } = string.Empty;
+
+    public string Status { get; set; } = string.Empty;
+
+    public decimal TotalAmount { get; set; }
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public ICollection<BookingPassenger> Passengers { get; set; }
+        = new List<BookingPassenger>();
+
+    public ICollection<SeatAllocation> SeatAllocations { get; set; }
+        = new List<SeatAllocation>();
+}
+
+
