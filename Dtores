@@ -1,0 +1,97 @@
+namespace ReservationService.DTOs;
+
+public class BookingResponse
+{
+    public int Id { get; set; }
+
+    public string PNR { get; set; } = string.Empty;
+
+    public int UserId { get; set; }
+
+    public int TrainId { get; set; }
+
+    public int FromStationId { get; set; }
+
+    public int ToStationId { get; set; }
+
+    public DateTime JourneyDate { get; set; }
+
+    public string Quota { get; set; } = string.Empty;
+
+    public string Status { get; set; } = string.Empty;
+
+    public decimal TotalAmount { get; set; }
+
+    public DateTime CreatedAt { get; set; }
+
+    public List<PassengerResponse> Passengers { get; set; }
+        = new List<PassengerResponse>();
+
+    public List<SeatAllocationResponse> SeatAllocations { get; set; }
+        = new List<SeatAllocationResponse>();
+}
+
+namespace ReservationService.DTOs;
+
+public class SeatAllocationResponse
+{
+    public int PassengerId { get; set; }
+
+    public int CoachId { get; set; }
+
+    public int SeatId { get; set; }
+
+    public int FromStationId { get; set; }
+
+    public int ToStationId { get; set; }
+}
+
+
+
+namespace ReservationService.DTOs;
+
+public class PassengerResponse
+{
+    public int Id { get; set; }
+
+    public string Name { get; set; } = string.Empty;
+
+    public int Age { get; set; }
+
+    public string Gender { get; set; } = string.Empty;
+
+    public string? Preference { get; set; }
+}
+
+namespace ReservationService.DTOs;
+
+public class CreateBookingRequest
+{
+    public int UserId { get; set; }
+
+    public int TrainId { get; set; }
+
+    public int FromStationId { get; set; }
+
+    public int ToStationId { get; set; }
+
+    public DateTime JourneyDate { get; set; }
+
+    public string Quota { get; set; } = "General";
+
+    public List<PassengerRequest> Passengers { get; set; }
+        = new List<PassengerRequest>();
+}
+
+namespace ReservationService.DTOs;
+
+public class PassengerRequest
+{
+    public string Name { get; set; } = string.Empty;
+
+    public int Age { get; set; }
+
+    public string Gender { get; set; } = string.Empty;
+
+    public string? Preference { get; set; }
+}
