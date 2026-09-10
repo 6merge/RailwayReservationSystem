@@ -1,0 +1,238 @@
+using ReservationService.DTOs;
+
+namespace ReservationService.Services;
+
+public interface IBookingService
+{
+    Task<BookingResponse> CreateBookingAsync(
+        CreateBookingRequest request);
+
+    Task<BookingResponse?> GetBookingByIdAsync(int id);
+
+    Task<BookingResponse?> GetBookingByPNRAsync(string pnr);
+
+    Task<List<BookingResponse>> GetBookingsByUserIdAsync(int userId);
+
+    Task CancelBookingAsync(int bookingId);
+}
+
+
+using ReservationService.DTOs;
+using ReservationService.Entities;
+using ReservationService.Exceptions;
+using ReservationService.Repositories;
+
+namespace ReservationService.Services;
+
+public class BookingService : IBookingService
+{
+    private readonly IBookingRepository _bookingRepository;
+
+    public BookingService(
+        IBookingRepository bookingRepository)
+    {
+        _bookingRepository = bookingRepository;
+    }
+
+    public async Task<BookingResponse> CreateBookingAsync(
+        CreateBookingRequest request)
+    {
+        ValidateBookingRequest(request);
+
+        var booking = new Booking
+        {
+            PNR = GeneratePNR(),
+            UserId = request.UserId,
+            TrainId = request.TrainId,
+            FromStationId = request.FromStationId,
+            ToStationId = request.ToStationId,
+            JourneyDate = request.JourneyDate,
+            Quota = request.Quota,
+            Status = "Pending",
+            TotalAmount = 0,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        foreach (var passengerRequest in request.Passengers)
+        {
+            booking.Passengers.Add(new BookingPassenger
+            {
+                Name = passengerRequest.Name,
+                Age = passengerRequest.Age,
+                Gender = passengerRequest.Gender,
+                Preference = passengerRequest.Preference
+            });
+        }
+
+        await _bookingRepository.AddAsync(booking);
+        await _bookingRepository.SaveChangesAsync();
+
+        return MapToResponse(booking);
+    }
+
+    public async Task<BookingResponse?> GetBookingByIdAsync(int id)
+    {
+        if (id <= 0)
+            throw new ArgumentException(
+                "Valid booking ID is required.");
+
+        var booking = await _bookingRepository.GetByIdAsync(id);
+
+        if (booking == null)
+            throw new NotFoundException("Booking not found.");
+
+        return MapToResponse(booking);
+    }
+
+    public async Task<BookingResponse?> GetBookingByPNRAsync(
+        string pnr)
+    {
+        if (string.IsNullOrWhiteSpace(pnr))
+            throw new ArgumentException(
+                "PNR is required.");
+
+        var booking = await _bookingRepository.GetByPNRAsync(pnr);
+
+        if (booking == null)
+            throw new NotFoundException("Booking not found.");
+
+        return MapToResponse(booking);
+    }
+
+    public async Task<List<BookingResponse>> GetBookingsByUserIdAsync(
+        int userId)
+    {
+        if (userId <= 0)
+            throw new ArgumentException(
+                "Valid user ID is required.");
+
+        var bookings = await _bookingRepository
+            .GetByUserIdAsync(userId);
+
+        return bookings
+            .Select(MapToResponse)
+            .ToList();
+    }
+
+    public async Task CancelBookingAsync(int bookingId)
+    {
+        if (bookingId <= 0)
+            throw new ArgumentException(
+                "Valid booking ID is required.");
+
+        var booking = await _bookingRepository
+            .GetByIdAsync(bookingId);
+
+        if (booking == null)
+            throw new NotFoundException("Booking not found.");
+
+        if (booking.Status == "Cancelled")
+            throw new ConflictException(
+                "Booking is already cancelled.");
+
+        booking.Status = "Cancelled";
+
+        await _bookingRepository.SaveChangesAsync();
+    }
+
+    private static void ValidateBookingRequest(
+        CreateBookingRequest request)
+    {
+        if (request.UserId <= 0)
+            throw new ArgumentException(
+                "Valid user ID is required.");
+
+        if (request.TrainId <= 0)
+            throw new ArgumentException(
+                "Valid train ID is required.");
+
+        if (request.FromStationId <= 0)
+            throw new ArgumentException(
+                "Valid source station ID is required.");
+
+        if (request.ToStationId <= 0)
+            throw new ArgumentException(
+                "Valid destination station ID is required.");
+
+        if (request.FromStationId == request.ToStationId)
+            throw new ArgumentException(
+                "Source and destination stations must be different.");
+
+        if (request.JourneyDate.Date < DateTime.UtcNow.Date)
+            throw new ArgumentException(
+                "Journey date cannot be in the past.");
+
+        if (request.Passengers == null ||
+            request.Passengers.Count < 1 ||
+            request.Passengers.Count > 6)
+            throw new ArgumentException(
+                "A booking must contain between 1 and 6 passengers.");
+
+        if (string.IsNullOrWhiteSpace(request.Quota))
+            throw new ArgumentException(
+                "Quota is required.");
+
+        foreach (var passenger in request.Passengers)
+        {
+            if (string.IsNullOrWhiteSpace(passenger.Name))
+                throw new ArgumentException(
+                    "Passenger name is required.");
+
+            if (passenger.Age <= 0)
+                throw new ArgumentException(
+                    "Passenger age must be greater than zero.");
+
+            if (string.IsNullOrWhiteSpace(passenger.Gender))
+                throw new ArgumentException(
+                    "Passenger gender is required.");
+        }
+    }
+
+    private static string GeneratePNR()
+    {
+        return $"PNR{Guid.NewGuid():N}"
+            .Substring(0, 13)
+            .ToUpper();
+    }
+
+    private static BookingResponse MapToResponse(
+        Booking booking)
+    {
+        return new BookingResponse
+        {
+            Id = booking.Id,
+            PNR = booking.PNR,
+            UserId = booking.UserId,
+            TrainId = booking.TrainId,
+            FromStationId = booking.FromStationId,
+            ToStationId = booking.ToStationId,
+            JourneyDate = booking.JourneyDate,
+            Quota = booking.Quota,
+            Status = booking.Status,
+            TotalAmount = booking.TotalAmount,
+            CreatedAt = booking.CreatedAt,
+
+            Passengers = booking.Passengers
+                .Select(p => new PassengerResponse
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    Age = p.Age,
+                    Gender = p.Gender,
+                    Preference = p.Preference
+                })
+                .ToList(),
+
+            SeatAllocations = booking.SeatAllocations
+                .Select(s => new SeatAllocationResponse
+                {
+                    PassengerId = s.PassengerId,
+                    CoachId = s.CoachId,
+                    SeatId = s.SeatId,
+                    FromStationId = s.FromStationId,
+                    ToStationId = s.ToStationId
+                })
+                .ToList()
+        };
+    }
+}
