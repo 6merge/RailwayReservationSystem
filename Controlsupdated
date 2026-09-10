@@ -1,0 +1,246 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using TrainService.DTOs;
+using TrainService.Services;
+
+namespace TrainService.Controllers;
+
+[ApiController]
+[Route("api/route-stops")]
+public class RouteStopsController : ControllerBase
+{
+    private readonly IRouteStopService _routeStopService;
+
+    public RouteStopsController(
+        IRouteStopService routeStopService)
+    {
+        _routeStopService = routeStopService;
+    }
+
+    // -------------------------
+    // Public endpoint
+    // -------------------------
+
+    [HttpGet("train/{trainId}")]
+    public async Task<IActionResult> GetRouteStopsByTrain(
+        int trainId)
+    {
+        var routeStops = await _routeStopService
+            .GetRouteStopsByTrainIdAsync(trainId);
+
+        return Ok(routeStops);
+    }
+
+    // -------------------------
+    // Admin endpoint
+    // -------------------------
+
+    [Authorize(Roles = "Admin")]
+    [HttpPost]
+    public async Task<IActionResult> CreateRouteStop(
+        CreateRouteStopRequest request)
+    {
+        var routeStop = await _routeStopService
+            .CreateRouteStopAsync(request);
+
+        return CreatedAtAction(
+            nameof(GetRouteStopsByTrain),
+            new { trainId = routeStop.TrainId },
+            routeStop);
+    }
+}
+
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using TrainService.DTOs;
+using TrainService.Services;
+
+namespace TrainService.Controllers;
+
+[ApiController]
+[Route("api/coaches")]
+public class CoachesController : ControllerBase
+{
+    private readonly ICoachService _coachService;
+
+    public CoachesController(ICoachService coachService)
+    {
+        _coachService = coachService;
+    }
+
+    // -------------------------
+    // Public endpoint
+    // -------------------------
+
+    [HttpGet("train/{trainId}")]
+    public async Task<IActionResult> GetCoachesByTrain(
+        int trainId)
+    {
+        var coaches = await _coachService
+            .GetCoachesByTrainIdAsync(trainId);
+
+        return Ok(coaches);
+    }
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetCoach(int id)
+    {
+        var coach = await _coachService
+            .GetCoachByIdAsync(id);
+
+        return Ok(coach);
+    }
+
+    // -------------------------
+    // Admin endpoint
+    // -------------------------
+
+    [Authorize(Roles = "Admin")]
+    [HttpPost]
+    public async Task<IActionResult> CreateCoach(
+        CreateCoachRequest request)
+    {
+        var coach = await _coachService
+            .CreateCoachAsync(request);
+
+        return CreatedAtAction(
+            nameof(GetCoach),
+            new { id = coach.Id },
+            coach);
+    }
+}
+
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using TrainService.DTOs;
+using TrainService.Services;
+
+namespace TrainService.Controllers;
+
+[ApiController]
+[Route("api/seats")]
+public class SeatController : ControllerBase
+{
+    private readonly ISeatService _seatService;
+
+    public SeatController(ISeatService seatService)
+    {
+        _seatService = seatService;
+    }
+
+    // -------------------------
+    // Public endpoints
+    // -------------------------
+
+    [HttpGet("coach/{coachId}")]
+    public async Task<IActionResult> GetSeatsByCoach(
+        int coachId)
+    {
+        var seats = await _seatService
+            .GetSeatsByCoachIdAsync(coachId);
+
+        return Ok(seats);
+    }
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetSeat(int id)
+    {
+        var seat = await _seatService
+            .GetSeatByIdAsync(id);
+
+        return Ok(seat);
+    }
+
+    // -------------------------
+    // Admin endpoint
+    // -------------------------
+
+    [Authorize(Roles = "Admin")]
+    [HttpPost]
+    public async Task<IActionResult> CreateSeat(
+        CreateSeatRequest request)
+    {
+        var seat = await _seatService
+            .CreateSeatAsync(request);
+
+        return CreatedAtAction(
+            nameof(GetSeat),
+            new { id = seat.Id },
+            seat);
+    }
+}
+
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using TrainService.DTOs;
+using TrainService.Services;
+
+namespace TrainService.Controllers;
+
+[ApiController]
+[Route("api/fares")]
+public class FareController : ControllerBase
+{
+    private readonly IFareService _fareService;
+
+    public FareController(IFareService fareService)
+    {
+        _fareService = fareService;
+    }
+
+    // -------------------------
+    // Public endpoints
+    // -------------------------
+
+    [HttpGet("train/{trainId}")]
+    public async Task<IActionResult> GetFaresByTrain(
+        int trainId)
+    {
+        var fares = await _fareService
+            .GetFaresByTrainIdAsync(trainId);
+
+        return Ok(fares);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetFare(
+        [FromQuery] int trainId,
+        [FromQuery] int fromStationId,
+        [FromQuery] int toStationId,
+        [FromQuery] string coachType)
+    {
+        var fare = await _fareService.GetFareAsync(
+            trainId,
+            fromStationId,
+            toStationId,
+            coachType);
+
+        return Ok(fare);
+    }
+
+    // -------------------------
+    // Admin endpoint
+    // -------------------------
+
+    [Authorize(Roles = "Admin")]
+    [HttpPost]
+    public async Task<IActionResult> CreateFare(
+        CreateFareRequest request)
+    {
+        var fare = await _fareService
+            .CreateFareAsync(request);
+
+        return CreatedAtAction(
+            nameof(GetFare),
+            new
+            {
+                trainId = fare.TrainId,
+                fromStationId = fare.FromStationId,
+                toStationId = fare.ToStationId,
+                coachType = fare.CoachType
+            },
+            fare);
+    }
+}
+
+
