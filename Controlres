@@ -1,0 +1,109 @@
+using Microsoft.EntityFrameworkCore;
+using ReservationService.Data;
+using ReservationService.Repositories;
+using ReservationService.Services;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddControllers();
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+builder.Services.AddDbContext<ReservationDbContext>(options =>
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString(
+            "ReservationDatabase")));
+
+builder.Services.AddScoped<IBookingRepository, BookingRepository>();
+
+builder.Services.AddScoped<
+    IBookingService,
+    BookingService>();
+
+var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseAuthorization();
+
+app.MapControllers();
+
+app.Run();
+
+
+using Microsoft.AspNetCore.Mvc;
+using ReservationService.DTOs;
+using ReservationService.Services;
+
+namespace ReservationService.Controllers;
+
+[ApiController]
+[Route("api/bookings")]
+public class BookingsController : ControllerBase
+{
+    private readonly IBookingService _bookingService;
+
+    public BookingsController(
+        IBookingService bookingService)
+    {
+        _bookingService = bookingService;
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> CreateBooking(
+        CreateBookingRequest request)
+    {
+        var booking = await _bookingService
+            .CreateBookingAsync(request);
+
+        return CreatedAtAction(
+            nameof(GetBooking),
+            new { id = booking.Id },
+            booking);
+    }
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetBooking(int id)
+    {
+        var booking = await _bookingService
+            .GetBookingByIdAsync(id);
+
+        return Ok(booking);
+    }
+
+    [HttpGet("pnr/{pnr}")]
+    public async Task<IActionResult> GetBookingByPNR(
+        string pnr)
+    {
+        var booking = await _bookingService
+            .GetBookingByPNRAsync(pnr);
+
+        return Ok(booking);
+    }
+
+    [HttpGet("user/{userId}")]
+    public async Task<IActionResult> GetBookingsByUser(
+        int userId)
+    {
+        var bookings = await _bookingService
+            .GetBookingsByUserIdAsync(userId);
+
+        return Ok(bookings);
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> CancelBooking(int id)
+    {
+        await _bookingService.CancelBookingAsync(id);
+
+        return Ok(new
+        {
+            message = "Booking cancelled successfully."
+        });
+    }
+}
