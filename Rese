@@ -1,0 +1,41 @@
+{
+  "ConnectionStrings": {
+    "ReservationDatabase": "Server=LIN-FR9TRN3;Database=RailwayReservationDb;User Id=sa;Password=YOUR_EXISTING_SQL_PASSWORD;TrustServerCertificate=True;"
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*"
+}
+
+using Microsoft.EntityFrameworkCore;
+using ReservationService.Data;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddControllers();
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+builder.Services.AddDbContext<ReservationDbContext>(options =>
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString(
+            "ReservationDatabase")));
+
+var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseAuthorization();
+
+app.MapControllers();
+
+app.Run();
