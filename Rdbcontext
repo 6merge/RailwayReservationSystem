@@ -1,0 +1,140 @@
+using Microsoft.EntityFrameworkCore;
+using ReservationService.Entities;
+
+namespace ReservationService.Data;
+
+public class ReservationDbContext : DbContext
+{
+    public ReservationDbContext(
+        DbContextOptions<ReservationDbContext> options)
+        : base(options)
+    {
+    }
+
+    public DbSet<Booking> Bookings { get; set; }
+
+    public DbSet<BookingPassenger> BookingPassengers { get; set; }
+
+    public DbSet<SeatAllocation> SeatAllocations { get; set; }
+
+    public DbSet<WaitlistEntry> WaitlistEntries { get; set; }
+
+    public DbSet<PaymentRecord> PaymentRecords { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        // -------------------------
+        // Booking
+        // -------------------------
+
+        modelBuilder.Entity<Booking>()
+            .HasIndex(b => b.PNR)
+            .IsUnique();
+
+        modelBuilder.Entity<Booking>()
+            .Property(b => b.PNR)
+            .HasMaxLength(20)
+            .IsRequired();
+
+        modelBuilder.Entity<Booking>()
+            .Property(b => b.Quota)
+            .HasMaxLength(20)
+            .IsRequired();
+
+        modelBuilder.Entity<Booking>()
+            .Property(b => b.Status)
+            .HasMaxLength(20)
+            .IsRequired();
+
+        modelBuilder.Entity<Booking>()
+            .Property(b => b.TotalAmount)
+            .HasPrecision(18, 2);
+
+        // -------------------------
+        // Booking → Passengers
+        // -------------------------
+
+        modelBuilder.Entity<BookingPassenger>()
+            .HasOne(p => p.Booking)
+            .WithMany(b => b.Passengers)
+            .HasForeignKey(p => p.BookingId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<BookingPassenger>()
+            .Property(p => p.Name)
+            .HasMaxLength(100)
+            .IsRequired();
+
+        modelBuilder.Entity<BookingPassenger>()
+            .Property(p => p.Gender)
+            .HasMaxLength(20)
+            .IsRequired();
+
+        modelBuilder.Entity<BookingPassenger>()
+            .Property(p => p.Preference)
+            .HasMaxLength(50);
+
+        // -------------------------
+        // Booking → Seat Allocations
+        // -------------------------
+
+        modelBuilder.Entity<SeatAllocation>()
+            .HasOne(s => s.Booking)
+            .WithMany(b => b.SeatAllocations)
+            .HasForeignKey(s => s.BookingId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<SeatAllocation>()
+            .HasOne(s => s.Passenger)
+            .WithMany()
+            .HasForeignKey(s => s.PassengerId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // -------------------------
+        // Waitlist
+        // -------------------------
+
+        modelBuilder.Entity<WaitlistEntry>()
+            .HasOne(w => w.Booking)
+            .WithMany()
+            .HasForeignKey(w => w.BookingId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<WaitlistEntry>()
+            .HasIndex(w => new
+            {
+                w.BookingId
+            })
+            .IsUnique();
+
+        // -------------------------
+        // Payment
+        // -------------------------
+
+        modelBuilder.Entity<PaymentRecord>()
+            .HasOne(p => p.Booking)
+            .WithMany()
+            .HasForeignKey(p => p.BookingId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<PaymentRecord>()
+            .HasIndex(p => p.TransactionId)
+            .IsUnique();
+
+        modelBuilder.Entity<PaymentRecord>()
+            .Property(p => p.TransactionId)
+            .HasMaxLength(100)
+            .IsRequired();
+
+        modelBuilder.Entity<PaymentRecord>()
+            .Property(p => p.Status)
+            .HasMaxLength(30)
+            .IsRequired();
+
+        modelBuilder.Entity<PaymentRecord>()
+            .Property(p => p.Amount)
+            .HasPrecision(18, 2);
+    }
+}
