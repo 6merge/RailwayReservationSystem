@@ -1,0 +1,156 @@
+[Authorize]
+[HttpGet("{id}/exists")]
+public async Task<IActionResult> UserExists(int id)
+{
+    var user = await _userService.GetUserAsync(id);
+
+    return Ok(new
+    {
+        exists = user != null
+    });
+}
+
+public async Task<bool> UserExistsAsync(int id)
+{
+    var user = await _userRepository.GetByIdAsync(id);
+
+    return user != null;
+}
+
+
+
+[Authorize]
+[HttpGet("{id}/exists")]
+public async Task<IActionResult> UserExists(int id)
+{
+    var exists = await _userService.UserExistsAsync(id);
+
+    return Ok(new
+    {
+        exists
+    });
+}
+
+
+namespace ReservationService.Services;
+
+public class UserServiceClient
+{
+    private readonly HttpClient _httpClient;
+
+    public UserServiceClient(HttpClient httpClient)
+    {
+        _httpClient = httpClient;
+    }
+
+    public async Task<bool> UserExistsAsync(int userId)
+    {
+        var response = await _httpClient.GetAsync(
+            $"api/users/{userId}/exists");
+
+        if (response.IsSuccessStatusCode)
+        {
+            var result = await response.Content
+                .ReadFromJsonAsync<UserExistsResponse>();
+
+            return result?.Exists ?? false;
+        }
+
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return false;
+        }
+
+        throw new Exception(
+            "Unable to validate user with UserService.");
+    }
+
+    private class UserExistsResponse
+    {
+        public bool Exists { get; set; }
+    }
+}
+
+
+builder.Services.AddHttpClient<UserServiceClient>(client =>
+{
+    client.BaseAddress = new Uri("http://localhost:5055/");
+});
+
+using System.Net.Http.Json;
+
+namespace ReservationService.Services;
+
+public class TrainServiceClient
+{
+    private readonly HttpClient _httpClient;
+
+    public TrainServiceClient(HttpClient httpClient)
+    {
+        _httpClient = httpClient;
+    }
+
+    public async Task<bool> TrainExistsAsync(int trainId)
+    {
+        var response = await _httpClient.GetAsync(
+            $"api/trains/{trainId}");
+
+        return response.IsSuccessStatusCode;
+    }
+
+    public async Task<HttpResponseMessage> GetRouteAsync(int trainId)
+    {
+        return await _httpClient.GetAsync(
+            $"api/route-stops/train/{trainId}");
+    }
+
+    public async Task<HttpResponseMessage> GetFareAsync(
+        int trainId,
+        int fromStationId,
+        int toStationId,
+        string coachType)
+    {
+        return await _httpClient.GetAsync(
+            $"api/fares?trainId={trainId}" +
+            $"&fromStationId={fromStationId}" +
+            $"&toStationId={toStationId}" +
+            $"&coachType={Uri.EscapeDataString(coachType)}");
+    }
+}
+
+
+builder.Services.AddHttpClient<TrainServiceClient>(client =>
+{
+    client.BaseAddress = new Uri("http://localhost:5093/");
+});
+
+
+
+public BookingService(
+    IBookingRepository bookingRepository,
+    UserServiceClient userServiceClient,
+    TrainServiceClient trainServiceClient)
+{
+    _bookingRepository = bookingRepository;
+    _userServiceClient = userServiceClient;
+    _trainServiceClient = trainServiceClient;
+}
+
+var userExists =
+    await _userServiceClient.UserExistsAsync(request.UserId);
+
+if (!userExists)
+{
+    throw new NotFoundException("User not found.");
+}
+
+var trainExists =
+    await _trainServiceClient.TrainExistsAsync(request.TrainId);
+
+if (!trainExists)
+{
+    throw new NotFoundException("Train not found.");
+}
+
+
+
