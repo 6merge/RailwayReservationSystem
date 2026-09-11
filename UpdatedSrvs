@@ -1,0 +1,127 @@
+public async Task<List<TrainDto>> SearchTrainsAsync(string from, string to)
+{
+    if (string.IsNullOrWhiteSpace(from) || string.IsNullOrWhiteSpace(to))
+    {
+        throw new ArgumentException("From station and To station are required.");
+    }
+
+    if (string.Equals(from.Trim(), to.Trim(), StringComparison.OrdinalIgnoreCase))
+    {
+        throw new ArgumentException("Origin and destination stations must be different.");
+    }
+
+    var stations = await stationRepository.GetAllAsync();
+
+    var fromStation = stations.FirstOrDefault(
+        station => string.Equals(
+            station.Name.Trim(),
+            from.Trim(),
+            StringComparison.OrdinalIgnoreCase));
+
+    var toStation = stations.FirstOrDefault(
+        station => string.Equals(
+            station.Name.Trim(),
+            to.Trim(),
+            StringComparison.OrdinalIgnoreCase));
+
+    if (fromStation is null)
+    {
+        throw new InvalidOperationException($"From station '{from}' was not found.");
+    }
+
+    if (toStation is null)
+    {
+        throw new InvalidOperationException($"To station '{to}' was not found.");
+    }
+
+    var fromStationId = fromStation.Id;
+    var toStationId = toStation.Id;
+
+    var matchingTrains = new List<TrainDto>();
+    var trains = await trainRepository.GetAllAsync();
+
+    foreach (var train in trains)
+    {
+        var routeStops = await routeStopRepository.GetByTrainIdAsync(train.Id);
+
+        var origin = routeStops.FirstOrDefault(
+            stop => stop.StationId == fromStationId);
+
+        var destination = routeStops.FirstOrDefault(
+            stop => stop.StationId == toStationId);
+
+        if (origin is not null &&
+            destination is not null &&
+            origin.StopOrder < destination.StopOrder)
+        {
+            matchingTrains.Add(MapTrain(train));
+        }
+    }
+
+    return matchingTrains;
+}
+
+
+public async Task<FareDto> GetFareAsync(
+    int trainId,
+    string from,
+    string to,
+    CoachType coachType)
+{
+    ValidatePositiveId(trainId, nameof(trainId));
+
+    if (string.IsNullOrWhiteSpace(from) || string.IsNullOrWhiteSpace(to))
+    {
+        throw new ArgumentException("From station and To station are required.");
+    }
+
+    if (string.Equals(from.Trim(), to.Trim(), StringComparison.OrdinalIgnoreCase))
+    {
+        throw new ArgumentException("Origin and destination stations must be different.");
+    }
+
+    var stations = await stationRepository.GetAllAsync();
+
+    var fromStation = stations.FirstOrDefault(
+        station => string.Equals(
+            station.Name.Trim(),
+            from.Trim(),
+            StringComparison.OrdinalIgnoreCase));
+
+    var toStation = stations.FirstOrDefault(
+        station => string.Equals(
+            station.Name.Trim(),
+            to.Trim(),
+            StringComparison.OrdinalIgnoreCase));
+
+    if (fromStation is null)
+    {
+        throw new InvalidOperationException($"From station '{from}' was not found.");
+    }
+
+    if (toStation is null)
+    {
+        throw new InvalidOperationException($"To station '{to}' was not found.");
+    }
+
+    var fromStationId = fromStation.Id;
+    var toStationId = toStation.Id;
+
+    var fare = await fareRepository.GetFareAsync(
+        trainId,
+        fromStationId,
+        toStationId,
+        coachType);
+
+    if (fare is null)
+    {
+        throw new InvalidOperationException("Fare was not found.");
+    }
+
+    return new FareDto(
+        fare.TrainId,
+        fare.FromStationId,
+        fare.ToStationId,
+        fare.CoachType,
+        fare.Amount);
+}
