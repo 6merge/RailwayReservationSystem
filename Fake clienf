@@ -1,0 +1,61 @@
+private sealed class FakeTrainClient : ITrainClient
+{
+    public Task<TrainClientDto> GetTrainAsync(int trainId)
+    {
+        return Task.FromResult(
+            new TrainClientDto(trainId, "12345", "Test Express"));
+    }
+
+    public Task<List<RouteStopClientDto>> GetRouteAsync(int trainId)
+    {
+        return Task.FromResult(
+            new List<RouteStopClientDto>
+            {
+                new(
+                    1,
+                    1,
+                    "NDLS",
+                    "New Delhi",
+                    TimeSpan.FromHours(8),
+                    TimeSpan.FromHours(8)),
+
+                new(
+                    2,
+                    2,
+                    "CNB",
+                    "Kanpur Central",
+                    TimeSpan.FromHours(12),
+                    TimeSpan.FromHours(12))
+            });
+    }
+
+    public Task<FareClientDto> GetFareAsync(
+        int trainId,
+        int fromStationId,
+        int toStationId,
+        CoachType coachType)
+    {
+        return Task.FromResult(
+            new FareClientDto(
+                trainId,
+                fromStationId,
+                toStationId,
+                coachType,
+                450m));
+    }
+
+    public Task<List<SeatInventoryClientDto>> GetSeatInventoryAsync(
+        int trainId,
+        CoachType coachType)
+    {
+        return Task.FromResult(
+            new List<SeatInventoryClientDto>
+            {
+                new(
+                    1,
+                    "S1",
+                    1,
+                    "1")
+            });
+    }
+}
