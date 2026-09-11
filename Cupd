@@ -1,0 +1,64 @@
+[AllowAnonymous]
+[HttpGet("availability")]
+public async Task<ActionResult<AvailabilityResponse>> GetAvailability(
+    [FromQuery] AvailabilityRequest request)
+{
+    try
+    {
+        if (request.TrainId <= 0 ||
+            string.IsNullOrWhiteSpace(request.From) ||
+            string.IsNullOrWhiteSpace(request.To) ||
+            request.JourneyDate == default)
+        {
+            return BadRequest(
+                "Train ID, From station, To station and journey date are required.");
+        }
+
+        if (string.Equals(
+                request.From.Trim(),
+                request.To.Trim(),
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest("From and To stations must be different.");
+        }
+
+        var routeStops = await trainClient.GetRouteAsync(request.TrainId);
+
+        var fromStop = routeStops.FirstOrDefault(
+            stop => string.Equals(
+                stop.StationName,
+                request.From.Trim(),
+                StringComparison.OrdinalIgnoreCase));
+
+        if (fromStop is null)
+        {
+            return BadRequest(
+                $"From station '{request.From}' was not found on the train route.");
+        }
+
+        var toStop = routeStops.FirstOrDefault(
+            stop => string.Equals(
+                stop.StationName,
+                request.To.Trim(),
+                StringComparison.OrdinalIgnoreCase));
+
+        if (toStop is null)
+        {
+            return BadRequest(
+                $"To station '{request.To}' was not found on the train route.");
+        }
+
+        var result = await availabilityService.GetAvailabilityAsync(
+            request.TrainId,
+            fromStop.StationId,
+            toStop.StationId,
+            request.JourneyDate.Date,
+            request.CoachType);
+
+        return Ok(new AvailabilityResponse(result.AvailableSeats.Count));
+    }
+    catch (InvalidOperationException exception)
+    {
+        return BadRequest(exception.Message);
+    }
+}
