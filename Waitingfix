@@ -1,0 +1,72 @@
+public async Task<ReservationDetailsResponse> GetReservationAsync(int userId, string pnr)
+{
+    if (userId <= 0 || string.IsNullOrWhiteSpace(pnr))
+    {
+        throw new ArgumentException("User ID and PNR are required.");
+    }
+
+    var booking = await bookingRepository.GetByPnrAsync(pnr)
+        ?? throw new KeyNotFoundException("Booking was not found.");
+
+    if (booking.UserId != userId)
+    {
+        throw new UnauthorizedAccessException("Only the booking owner can view this reservation.");
+    }
+
+    var passengers = await bookingPassengerRepository.GetByBookingIdAsync(booking.Id);
+    var allocations = await seatAllocationRepository.GetByBookingIdAsync(booking.Id);
+
+    // Get station names from Train Service
+    var routeStops = await trainClient.GetRouteAsync(booking.TrainId);
+
+    var fromStop = routeStops.FirstOrDefault(
+        stop => stop.StationId == booking.FromStationId);
+
+    var toStop = routeStops.FirstOrDefault(
+        stop => stop.StationId == booking.ToStationId);
+
+    if (fromStop is null || toStop is null)
+    {
+        throw new InvalidOperationException(
+            "Booking stations were not found on the train route.");
+    }
+
+    // Get waitlist position if this booking is currently waitlisted
+    int? waitlistNumber = null;
+
+    if (booking.Status == BookingStatus.Waitlisted)
+    {
+        var waitlistEntry =
+            await waitlistRepository.GetByBookingIdAsync(booking.Id);
+
+        if (waitlistEntry is not null)
+        {
+            waitlistNumber = waitlistEntry.Position;
+        }
+    }
+
+    var responses = passengers.Select(passenger =>
+    {
+        var allocation = allocations.FirstOrDefault(
+            item => item.BookingPassengerId == passenger.Id);
+
+        return new BookingPassengerResponse(
+            passenger.Id,
+            passenger.Name,
+            allocation?.CoachId.ToString(),
+            allocation?.SeatId.ToString());
+    }).ToList();
+
+    return new ReservationDetailsResponse(
+        booking.Pnr,
+        booking.Status,
+        booking.TrainId,
+        fromStop.StationName,
+        toStop.StationName,
+        booking.JourneyDate,
+        booking.CoachType,
+        booking.Quota,
+        booking.TotalFare,
+        waitlistNumber,
+        responses);
+}
